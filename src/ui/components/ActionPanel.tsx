@@ -290,6 +290,7 @@ function TurnPanel({ c }: { c: GameController }) {
 
   const here = BOARD[p.position]
   const rentHere = s.properties[p.position] ? rentFor(s, p.position) : 0
+  const blockedByFirstLap = s.properties[p.position]?.owner === null && s.settings.firstLapRule && !p.lapped
   return (
     <div>
       <p className="text-sm text-muted">
@@ -297,6 +298,12 @@ function TurnPanel({ c }: { c: GameController }) {
         {rentHere > 0 && s.properties[p.position]?.owner === p.id ? ` (your rent: ${formatMoney(rentHere)})` : ''}. Build, mortgage or trade,
         then end {c.meId ? 'your' : 'the'} turn.
       </p>
+      {blockedByFirstLap && (
+        <p className="mt-2 rounded-xl border border-accent bg-accent/10 p-2 text-sm">
+          <strong>{here.name} is for sale, but {c.meId ? "you can't" : `${p.name} can't`} buy yet.</strong> First-lap rule: nobody can
+          buy property until they've passed Start once. (The host can switch this off in the lobby's house rules.)
+        </p>
+      )}
       <div className="mt-3 flex flex-wrap gap-2">
         <Button variant="primary" size="lg" disabled={busy} onClick={() => submit({ type: 'endTurn' }, p.id)}>
           End turn
