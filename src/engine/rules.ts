@@ -12,7 +12,7 @@ import type { GameState, Player, PlayerId, Settings } from './types'
 
 export const DEFAULT_SETTINGS: Settings = {
   firstLapRule: false,
-  auctions: true,
+  auctions: false,
   restHouseMode: 'collect',
   wealthTaxMode: 'perBuilding',
   jailHalfRent: false,

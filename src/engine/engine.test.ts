@@ -80,7 +80,7 @@ describe('movement and Start', () => {
   })
 
   it('cannot roll twice without doubles, and ends the turn', () => {
-    let s = roll(game(), 'a', 5)
+    let s = roll(game(3, { auctions: true }), 'a', 5)
     expect(s.turn.phase).toBe('buy') // Railways
     s = act(s, { type: 'decline', now: NOW }, 'a')
     s = act(s, { type: 'passAuction' }, 'a')
@@ -146,8 +146,9 @@ describe('buying', () => {
     expect(actError(s, { type: 'buy' }, 'a')).toMatch(/need/)
   })
 
-  it('declining without auctions leaves it with the bank', () => {
-    let s = roll(game(3, { auctions: false }), 'a', 9)
+  it('auctions are off by default: declining leaves it with the bank', () => {
+    expect(game(3).settings.auctions).toBe(false)
+    let s = roll(game(3), 'a', 9)
     s = act(s, { type: 'decline', now: NOW }, 'a')
     expect(s.auction).toBeNull()
     expect(s.properties[9].owner).toBeNull()
@@ -625,7 +626,7 @@ describe('Community Chest (decided by dice total, landing on tile 17)', () => {
 })
 
 describe('auctions', () => {
-  const declined = () => act(roll(game(3), 'a', 9), { type: 'decline', now: NOW }, 'a')
+  const declined = () => act(roll(game(3, { auctions: true }), 'a', 9), { type: 'decline', now: NOW }, 'a')
 
   it('starts an auction when a tile is declined', () => {
     const s = declined()
@@ -678,7 +679,7 @@ describe('auctions', () => {
   })
 
   it('excludes players who have not lapped (first-lap rule)', () => {
-    let s = arrange(game(3, { firstLapRule: true }), (d) => (d.players[2].lapped = false))
+    let s = arrange(game(3, { firstLapRule: true, auctions: true }), (d) => (d.players[2].lapped = false))
     s = act(roll(s, 'a', 9), { type: 'decline', now: NOW }, 'a')
     expect(actError(s, { type: 'bid', amount: 100, now: NOW }, 'c')).toMatch(/passed Start/)
   })
@@ -822,7 +823,7 @@ describe('debt and bankruptcy', () => {
   })
 
   it('bankruptcy to the bank auctions the properties', () => {
-    let s = arrange(game(3), (d) => {
+    let s = arrange(game(3, { auctions: true }), (d) => {
       own(d, 'a', 1)
       d.players[0].cash = 100
       place(d, 'a', 0)

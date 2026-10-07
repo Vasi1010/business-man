@@ -132,7 +132,7 @@ The rules follow the brief. Where it left room for interpretation:
 - **Mortgages:** you must sell the buildings in a colour group before mortgaging any of it. Traded mortgaged tiles stay mortgaged.
 - **Full-group double rent** applies to unbuilt cities whenever the owner holds the whole group.
 - **Jail:** doubles on your jail roll free you and move you, but don't give an extra roll.
-- **Auctions:** start with a 10-second countdown that resets on each bid; they also end once everyone else drops out.
+- **Auctions** (off by default, so you simply buy or leave a property; switch them on in the lobby): start with a 10-second countdown that resets on each bid; they also end once everyone else drops out.
 
 ## Project layout
 
