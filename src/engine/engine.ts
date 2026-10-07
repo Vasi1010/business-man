@@ -559,7 +559,11 @@ function validateBundle(ctx: Ctx, ownerId: PlayerId, b: TradeBundle): string | n
   if (b.passes > p.jailPasses) return `${p.name} doesn't have enough jail passes`
   for (const i of b.tiles) {
     if (ctx.s.properties[i]?.owner !== ownerId) return `${p.name} doesn't own ${BOARD[i]?.name ?? 'that tile'}`
-    if (groupHasBuildings(ctx.s, i)) return `Sell the buildings in ${tileName(i)}'s colour group before trading it`
+    // Built-on cities can be traded, buildings included, but only as a whole colour group,
+    // so the new owner always holds the full group their houses stand on.
+    const t = BOARD[i]
+    if (t.kind === 'city' && groupHasBuildings(ctx.s, i) && !groupTiles(t.group).every((g) => b.tiles.includes(g)))
+      return `${tileName(i)}'s colour group has buildings, so trade the whole group together`
   }
   return null
 }

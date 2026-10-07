@@ -130,6 +130,7 @@ The rules follow the brief. Where it left room for interpretation:
 - **Debts:** if you can't pay, the debt is queued and play pauses until you sell, mortgage, trade and pay. Bankruptcy is only offered when even selling everything wouldn't cover it. When several players are owed (Club, "pay every player"), each payment is a separate debt in order.
 - **Bankruptcy:** buildings are sold back at half price first. Owing a player: they get your cash, properties (mortgages stay) and jail passes. Owing the bank: properties are auctioned one by one.
 - **Mortgages:** you must sell the buildings in a colour group before mortgaging any of it. Traded mortgaged tiles stay mortgaged.
+- **Trading buildings:** cities can be traded with their houses and hotels on them, but a colour group that has buildings must be traded as a whole.
 - **Full-group double rent** applies to unbuilt cities whenever the owner holds the whole group.
 - **Jail:** doubles on your jail roll free you and move you, but don't give an extra roll.
 - **Auctions** (off by default, so you simply buy or leave a property; switch them on in the lobby): start with a 10-second countdown that resets on each bid; they also end once everyone else drops out.

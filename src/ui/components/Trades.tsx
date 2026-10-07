@@ -3,7 +3,9 @@ import {
   BOARD,
   GROUP_COLORS,
   formatMoney,
+  HOTEL_LEVEL,
   groupHasBuildings,
+  groupTiles,
   isLegal,
   ownedTiles,
   type Action,
@@ -52,26 +54,38 @@ function BundleEditor({
     <fieldset className="min-w-0 flex-1 rounded-2xl border border-line p-3">
       <legend className="px-1 text-sm font-semibold">{title}</legend>
       {tiles.length === 0 && <p className="text-sm text-muted">No properties.</p>}
+      {tiles.some((i) => groupHasBuildings(s, i)) && (
+        <p className="mb-1 text-xs text-muted">Cities with houses or hotels go with their buildings, as a whole colour group.</p>
+      )}
       <ul className="max-h-48 space-y-1 overflow-y-auto">
         {tiles.map((i) => {
-          const blocked = groupHasBuildings(s, i)
+          const built = groupHasBuildings(s, i)
+          const t = BOARD[i]
+          const group = t.kind === 'city' && built ? groupTiles(t.group).filter((g) => s.properties[g].owner === ownerId) : [i]
+          const level = s.properties[i].level
           const checked = bundle.tiles.includes(i)
           return (
             <li key={i}>
-              <label className={`flex items-center gap-2 text-sm ${blocked ? 'opacity-50' : 'cursor-pointer'}`}>
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
                 <input
                   type="checkbox"
-                  disabled={blocked}
                   checked={checked}
                   onChange={() =>
-                    onChange({ ...bundle, tiles: checked ? bundle.tiles.filter((x) => x !== i) : [...bundle.tiles, i] })
+                    onChange({
+                      ...bundle,
+                      tiles: checked ? bundle.tiles.filter((x) => !group.includes(x)) : [...new Set([...bundle.tiles, ...group])],
+                    })
                   }
                   className="h-4 w-4 accent-[var(--brand)]"
                 />
                 <Swatch tile={i} />
                 <span className="truncate">{BOARD[i].name}</span>
                 {s.properties[i].mortgaged && <span className="text-xs text-bad">mortgaged</span>}
-                {blocked && <span className="text-xs text-muted">has buildings</span>}
+                {level > 0 && (
+                  <span className="text-xs font-semibold text-good">
+                    {level === HOTEL_LEVEL ? 'hotel' : `${level} house${level > 1 ? 's' : ''}`}
+                  </span>
+                )}
               </label>
             </li>
           )

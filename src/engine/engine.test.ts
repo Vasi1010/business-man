@@ -752,14 +752,34 @@ describe('trades', () => {
     expect(s.trades).toHaveLength(0)
   })
 
-  it('rejects trades for cities in a group with buildings', () => {
+  it('only trades built-on cities as a whole colour group', () => {
     const s = arrange(base(), (d) => {
       own(d, 'a', 3)
       d.properties[1].level = 1
     })
     expect(
       actError(s, { type: 'proposeTrade', toId: 'b', give: { tiles: [3], cash: 0, passes: 0 }, get: { tiles: [], cash: 100, passes: 0 } }, 'a'),
-    ).toMatch(/buildings/)
+    ).toMatch(/whole group/)
+  })
+
+  it('trades houses and hotels along with their cities', () => {
+    let s = arrange(base(), (d) => {
+      own(d, 'a', 1, 3)
+      d.properties[1].level = 4
+      d.properties[3].level = 3
+    })
+    s = act(s, { type: 'proposeTrade', toId: 'b', give: { tiles: [1, 3], cash: 0, passes: 0 }, get: { tiles: [], cash: 9000, passes: 0 } }, 'a')
+    s = act(s, { type: 'respondTrade', tradeId: 1, accept: true }, 'b')
+    expect(s.properties[1]).toMatchObject({ owner: 'b', level: 4 })
+    expect(s.properties[3]).toMatchObject({ owner: 'b', level: 3 })
+    expect(cash(s, 'a')).toBe(START_CASH + 9000)
+    // The new owner collects the built rent straight away.
+    s = arrange(s, (d) => {
+      d.turn.playerId = 'c'
+      place(d, 'c', 0)
+    })
+    s = roll(s, 'c', 3)
+    expect(cash(s, 'b')).toBe(START_CASH - 9000 + 2400)
   })
 
   it("rejects trades of things you don't have", () => {
