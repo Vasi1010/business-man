@@ -94,8 +94,15 @@ describe('movement and Start', () => {
 })
 
 describe('first-lap rule', () => {
-  it('blocks buying before passing Start', () => {
+  it('is off by default', () => {
     let s = game(3, {}, { lapped: false })
+    expect(s.settings.firstLapRule).toBe(false)
+    s = roll(s, 'a', 9)
+    expect(s.turn.phase).toBe('buy')
+  })
+
+  it('blocks buying before passing Start', () => {
+    let s = game(3, { firstLapRule: true }, { lapped: false })
     s = roll(s, 'a', 9) // Amritsar
     expect(s.turn.phase).toBe('end')
     expect(s.turn.pendingTile).toBeNull()
@@ -103,7 +110,7 @@ describe('first-lap rule', () => {
   })
 
   it('allows buying after passing Start', () => {
-    let s = arrange(game(3, {}, { lapped: false }), (d) => place(d, 'a', 35))
+    let s = arrange(game(3, { firstLapRule: true }, { lapped: false }), (d) => place(d, 'a', 35))
     s = roll(s, 'a', 6) // passes Start, lands on Chandigarh
     expect(s.turn.phase).toBe('buy')
     s = act(s, { type: 'buy' }, 'a')
@@ -117,7 +124,7 @@ describe('first-lap rule', () => {
   })
 
   it('still charges rent before the first lap', () => {
-    let s = arrange(game(3, {}, { lapped: false }), (d) => own(d, 'b', 9))
+    let s = arrange(game(3, { firstLapRule: true }, { lapped: false }), (d) => own(d, 'b', 9))
     s = roll(s, 'a', 9)
     expect(cash(s, 'a')).toBe(START_CASH - 300)
     expect(cash(s, 'b')).toBe(START_CASH + 300)
@@ -671,7 +678,7 @@ describe('auctions', () => {
   })
 
   it('excludes players who have not lapped (first-lap rule)', () => {
-    let s = arrange(game(3), (d) => (d.players[2].lapped = false))
+    let s = arrange(game(3, { firstLapRule: true }), (d) => (d.players[2].lapped = false))
     s = act(roll(s, 'a', 9), { type: 'decline', now: NOW }, 'a')
     expect(actError(s, { type: 'bid', amount: 100, now: NOW }, 'c')).toMatch(/passed Start/)
   })

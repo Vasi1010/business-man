@@ -126,7 +126,7 @@ The engine (`src/engine/`) is pure TypeScript with no React or network code: `in
 
 The rules follow the brief. Where it left room for interpretation:
 
-- **First-lap rule:** before passing Start you can't buy or bid. If you land on an unowned tile, nothing happens (it isn't auctioned).
+- **First-lap rule** (off by default; switch it on in the lobby): before passing Start you can't buy or bid. If you land on an unowned tile, nothing happens (it isn't auctioned).
 - **Debts:** if you can't pay, the debt is queued and play pauses until you sell, mortgage, trade and pay. Bankruptcy is only offered when even selling everything wouldn't cover it. When several players are owed (Club, "pay every player"), each payment is a separate debt in order.
 - **Bankruptcy:** buildings are sold back at half price first. Owing a player: they get your cash, properties (mortgages stay) and jail passes. Owing the bank: properties are auctioned one by one.
 - **Mortgages:** you must sell the buildings in a colour group before mortgaging any of it. Traded mortgaged tiles stay mortgaged.

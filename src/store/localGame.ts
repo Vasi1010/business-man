@@ -47,7 +47,13 @@ export const useLocalGame = create<LocalGameStore>()(
     }),
     {
       name: 'businessman:local',
-      version: 1,
+      version: 2,
+      // v2: the first-lap rule became off by default; reset old saved preferences.
+      migrate: (persisted, version) => {
+        const p = persisted as Partial<LocalGameStore>
+        if (version < 2 && p.settings) p.settings = { ...p.settings, firstLapRule: false }
+        return p as LocalGameStore
+      },
       storage: createJSONStorage(() => localStorage),
       merge: (persisted, current) => {
         const p = persisted as Partial<LocalGameStore> | undefined
