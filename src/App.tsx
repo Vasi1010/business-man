@@ -1,11 +1,21 @@
-import { useEffect, useState } from 'react'
-import { existingUserId, fetchRoom, getLastRoom, setLastRoom } from './net/room'
-import { onlineConfigured } from './net/supabase'
+import { Suspense, lazy, useEffect, useState } from 'react'
+import { onlineConfigured } from './net/config'
 import { Toaster } from './ui/components/Overlays'
 import { navigate, useRoute } from './ui/router'
 import { Home } from './ui/screens/Home'
 import { LocalPlay } from './ui/screens/LocalPlay'
-import { CreateGame, OnlineRoom } from './ui/screens/Online'
+
+// Online play (and the Supabase SDK) loads only when needed.
+const CreateGame = lazy(() => import('./ui/screens/Online').then((m) => ({ default: m.CreateGame })))
+const OnlineRoom = lazy(() => import('./ui/screens/Online').then((m) => ({ default: m.OnlineRoom })))
+
+function getLastRoom(): string | null {
+  try {
+    return localStorage.getItem('businessman:lastRoom')
+  } catch {
+    return null
+  }
+}
 
 /** On first load, drop a returning player straight back into their unfinished online game. */
 function useAutoRejoin(enabled: boolean) {
@@ -17,6 +27,7 @@ function useAutoRejoin(enabled: boolean) {
     let cancelled = false
     ;(async () => {
       try {
+        const { existingUserId, fetchRoom, setLastRoom } = await import('./net/room')
         const uid = await existingUserId()
         if (!uid) return
         const row = await fetchRoom(code)
@@ -64,7 +75,7 @@ export default function App() {
   }
   return (
     <>
-      {screen}
+      <Suspense fallback={<p className="p-10 text-center text-muted">Loading…</p>}>{screen}</Suspense>
       <Toaster />
     </>
   )

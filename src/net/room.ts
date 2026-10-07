@@ -91,6 +91,8 @@ export function ensureSession(): Promise<string> {
     const { data } = await sb.auth.getSession()
     if (data.session?.user) return data.session.user.id
     const { data: signed, error } = await sb.auth.signInAnonymously()
+    if (error && /rate limit/i.test(error.message))
+      throw new Error('Too many new players from this network right now — please wait a few minutes and try again.')
     if (error || !signed.user) throw new Error(error?.message ?? 'Could not sign in')
     return signed.user.id
   })().finally(() => {
