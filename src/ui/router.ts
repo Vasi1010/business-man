@@ -3,6 +3,7 @@ import { useSyncExternalStore } from 'react'
 export type Route =
   | { name: 'home' }
   | { name: 'local' }
+  | { name: 'new' }
   | { name: 'join'; code: string }
   | { name: 'room'; code: string }
 
@@ -14,6 +15,7 @@ function parse(path: string): Route {
   const room = path.match(/^\/room\/([A-Za-z0-9]{6})\/?$/)
   if (room) return { name: 'room', code: room[1].toUpperCase() }
   if (path.startsWith('/local')) return { name: 'local' }
+  if (path.startsWith('/new')) return { name: 'new' }
   return { name: 'home' }
 }
 
