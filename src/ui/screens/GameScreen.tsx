@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { type Trade } from '../../engine'
+import { isLegal, type Trade } from '../../engine'
 import { usePrefs } from '../../store/prefs'
 import { toast } from '../../store/toasts'
-import { ControllerContext, perspectiveId, type GameController } from '../controller'
+import { ControllerContext, canAct, perspectiveId, type GameController } from '../controller'
+import { rollDice } from '../dice'
 import { useAutoActions } from '../hooks/useAutoActions'
 import { useGameFeedback } from '../hooks/useGameFeedback'
 import { useNow } from '../hooks/useNow'
@@ -113,6 +114,17 @@ export function GameScreen({ controller: c }: { controller: GameController }) {
   useAutoActions(c)
 
   const viewer = perspectiveId(s, c.meId)
+
+  // Tapping the dice rolls them when it's your turn to roll.
+  const roller = s.turn.playerId
+  const [rolling, setRolling] = useState(false)
+  const canRoll = !rolling && canAct(c, roller) && isLegal(s, { type: 'roll', dice: [1, 2] }, roller)
+  const onDiceClick = canRoll
+    ? () => {
+        setRolling(true)
+        void c.dispatch({ type: 'roll', dice: rollDice() }, roller).finally(() => setTimeout(() => setRolling(false), 400))
+      }
+    : undefined
   const viewerPlayer = s.players.find((p) => p.id === viewer)
 
   const startTrade = () => {
@@ -134,7 +146,7 @@ export function GameScreen({ controller: c }: { controller: GameController }) {
         <TopBar c={c} />
         <main className="mx-auto grid max-w-7xl gap-3 px-2 pt-2 sm:px-4 sm:pt-4 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
           <div className="mx-auto w-full lg:max-w-[calc(100dvh-5.5rem)]">
-            <Board onTileClick={setTile} />
+            <Board onTileClick={setTile} onDiceClick={onDiceClick} />
           </div>
           <div className="flex flex-col gap-3">
             <ActionPanel />

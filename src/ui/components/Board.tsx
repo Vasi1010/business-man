@@ -16,6 +16,7 @@ import { useController } from '../controller'
 import { useAnimatedPositions, type TokenMotion } from '../hooks/useAnimatedPositions'
 import { LogoMark, TileIcon, TokenBadge } from './Art'
 import { Dice } from './Dice'
+import { Dice3D } from './Dice3D'
 
 /** Soft hyphens so long names break cleanly on small tiles. */
 const SOFT_NAMES: Record<string, string> = {
@@ -133,7 +134,7 @@ const Tile = memo(function Tile({ index, prop, owner, highlight, salary, onClick
   )
 })
 
-function BoardCenter({ state }: { state: GameState }) {
+function BoardCenter({ state, showDice = true, onDiceClick }: { state: GameState; showDice?: boolean; onDiceClick?: () => void }) {
   const current = state.players.find((p) => p.id === state.turn.playerId)
   const waiting = waitingOn(state)
   let status: string
@@ -158,9 +159,25 @@ function BoardCenter({ state }: { state: GameState }) {
           {status}
         </span>
       </div>
-      <div className="h-[11cqw]">
-        <Dice dice={state.lastRoll?.dice ?? null} rollKey={state.lastRoll?.seq ?? null} />
-      </div>
+      {showDice ? (
+        onDiceClick ? (
+          <button
+            type="button"
+            onClick={onDiceClick}
+            aria-label="Roll dice"
+            title="Tap to roll"
+            className="pointer-events-auto h-[11cqw] rounded-[2cqw] transition hover:scale-105 active:scale-95"
+          >
+            <Dice dice={state.lastRoll?.dice ?? null} rollKey={state.lastRoll?.seq ?? null} />
+          </button>
+        ) : (
+          <div className="h-[11cqw]">
+            <Dice dice={state.lastRoll?.dice ?? null} rollKey={state.lastRoll?.seq ?? null} />
+          </div>
+        )
+      ) : (
+        <div className="h-[13cqw]" />
+      )}
       {waiting.length > 1 && <span className="text-[2cqw] text-muted">Waiting for bids…</span>}
     </div>
   )
@@ -217,10 +234,155 @@ function TokenLayer({ players, motion }: { players: Player[]; motion: TokenMotio
   )
 }
 
-export function Board({ onTileClick }: { onTileClick: (i: number) => void }) {
+export type BoardVariant = 'flat' | 'tilt'
+
+/** Board tilt for the 3D table view (degrees). */
+const TILT = 40
+
+/** Upright "standee" game pieces for the tilted view. */
+function TokenLayer3D({
+  players,
+  motion,
+  dice,
+  rollKey,
+  onDiceClick,
+}: {
+  players: Player[]
+  motion: TokenMotion
+  dice: [number, number] | null
+  rollKey: number | null
+  onDiceClick?: () => void
+}) {
+  const { positions, hops, stepMs } = motion
+  const byTile = new Map<number, Player[]>()
+  for (const p of players) {
+    if (p.bankrupt) continue
+    const pos = positions[p.id] ?? p.position
+    byTile.set(pos, [...(byTile.get(pos) ?? []), p])
+  }
+  return (
+    <div className="pointer-events-none absolute inset-0 z-20 [transform-style:preserve-3d]" style={{ transform: 'translateZ(0.2cqw)' }}>
+      <div
+        className={`absolute [transform-style:preserve-3d] ${onDiceClick ? 'pointer-events-auto cursor-pointer' : ''}`}
+        style={{ left: '50%', top: '62%' }}
+        onClick={onDiceClick}
+        role={onDiceClick ? 'button' : undefined}
+        tabIndex={onDiceClick ? 0 : undefined}
+        aria-label={onDiceClick ? 'Roll dice' : undefined}
+        onKeyDown={(e) => onDiceClick && (e.key === 'Enter' || e.key === ' ') && onDiceClick()}
+      >
+        <Dice3D dice={dice} rollKey={rollKey} />
+      </div>
+      {[...byTile.entries()].flatMap(([tile, group]) =>
+        group.map((p, i) => {
+          const c = tileCenter(tile)
+          const [ox, oy] = group.length === 1 ? [0, 0] : TOKEN_OFFSETS[i % TOKEN_OFFSETS.length]
+          const ms = stepMs[p.id] ?? 200
+          return (
+            <div
+              key={p.id}
+              className="absolute h-0 w-0 ease-in-out [transform-style:preserve-3d]"
+              style={{
+                left: `calc(${c.x}% + ${ox * 1.6}cqw)`,
+                top: `calc(${c.y}% + ${oy * 1.6}cqw)`,
+                transitionProperty: 'left, top',
+                transitionDuration: `${Math.round(ms * 0.85)}ms`,
+              }}
+            >
+              {/* Contact shadow on the board */}
+              <span
+                className="absolute h-[4.2cqw] w-[4.2cqw] -translate-x-1/2 -translate-y-1/2 rounded-full"
+                style={{ background: 'radial-gradient(closest-side, rgba(0,0,0,.45), rgba(0,0,0,0))' }}
+              />
+              {/* The piece stands up, facing the camera */}
+              <div
+                className="absolute left-0 top-0 [transform-style:preserve-3d]"
+                style={{ transform: `translate(-50%, -100%) rotateX(${-TILT}deg)`, transformOrigin: '50% 100%' }}
+              >
+                <div
+                  key={hops[p.id] ?? 0}
+                  className={`flex w-[5cqw] flex-col items-center ${hops[p.id] ? 'token-hop' : ''}`}
+                  style={{ animationDuration: `${Math.round(ms)}ms` }}
+                >
+                  <div className="h-[5cqw] w-[5cqw] [&>svg]:h-full [&>svg]:w-full [&>svg]:drop-shadow-md">
+                    <TokenBadge token={p.token} color={p.color} ring title={p.name} />
+                  </div>
+                  <span
+                    className="-mt-[0.4cqw] h-[1.6cqw] w-[1.4cqw]"
+                    style={{ background: `linear-gradient(90deg, ${p.color}, color-mix(in srgb, ${p.color} 55%, black))` }}
+                  />
+                  <span
+                    className="h-[1cqw] w-[3.6cqw] rounded-[50%]"
+                    style={{ background: `radial-gradient(ellipse at 40% 30%, color-mix(in srgb, ${p.color} 80%, white), color-mix(in srgb, ${p.color} 50%, black))` }}
+                  />
+                  {p.inJail && <span className="absolute right-0 top-0 h-[1.6cqw] w-[1.6cqw] rounded-full border border-white bg-ink" aria-hidden />}
+                </div>
+              </div>
+            </div>
+          )
+        }),
+      )}
+    </div>
+  )
+}
+
+export function Board({
+  onTileClick,
+  variant = 'flat',
+  onDiceClick,
+}: {
+  onTileClick: (i: number) => void
+  variant?: BoardVariant
+  /** When set, tapping the dice rolls them. */
+  onDiceClick?: () => void
+}) {
   const { state } = useController()
   const motion = useAnimatedPositions(state.players)
   const highlightTile = state.auction?.tile ?? state.turn.pendingTile
+  const tilt = variant === 'tilt'
+
+  const tiles = BOARD.map((_, i) => {
+    const prop = state.properties[i]
+    const owner = prop?.owner ? state.players.find((p) => p.id === prop.owner) : undefined
+    return (
+      <Tile
+        key={i}
+        index={i}
+        prop={prop}
+        owner={owner}
+        highlight={highlightTile === i}
+        salary={state.settings.startSalary}
+        onClick={onTileClick}
+      />
+    )
+  })
+
+  if (tilt) {
+    const edge = 'absolute bg-[#6b3f1f] dark:bg-[#3d2412]'
+    return (
+      <div className="@container w-full">
+        <div className="-mb-[9cqw] -mt-[4cqw] px-[2cqw]" style={{ perspective: '190cqw', perspectiveOrigin: '50% 20%' }}>
+          <div className="relative [transform-style:preserve-3d]" style={{ transform: `rotateX(${TILT}deg) scale(0.94)`, transformOrigin: '50% 60%' }}>
+            {/* Table shadow and board thickness */}
+            <div className="absolute inset-0 rounded-[1.5cqw] bg-black/45 blur-[2.5cqw]" style={{ transform: 'translateZ(-3cqw) scale(1.03)' }} />
+            <div className={`${edge} bottom-0 left-0 right-0 h-[2.4cqw] origin-bottom bg-gradient-to-b from-[#7a4a25] to-[#4a2a12]`} style={{ transform: 'rotateX(-90deg)' }} />
+            <div className={`${edge} bottom-0 left-0 top-0 w-[2.4cqw] origin-left`} style={{ transform: 'rotateY(90deg)' }} />
+            <div className={`${edge} bottom-0 right-0 top-0 w-[2.4cqw] origin-right`} style={{ transform: 'rotateY(-90deg)' }} />
+            <div
+              className="relative grid aspect-square w-full overflow-hidden rounded-[1.2cqw] border-[0.6cqw] border-[#5a3418] bg-board"
+              style={{ gridTemplateColumns: GRID_TEMPLATE, gridTemplateRows: GRID_TEMPLATE }}
+            >
+              {tiles}
+              <div style={{ gridRow: '2 / 11', gridColumn: '2 / 11' }} className="border-[0.12cqw] border-ink/45">
+                <BoardCenter state={state} showDice={false} />
+              </div>
+            </div>
+            <TokenLayer3D players={state.players} motion={motion} dice={state.lastRoll?.dice ?? null} rollKey={state.lastRoll?.seq ?? null} onDiceClick={onDiceClick} />
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="@container w-full">
@@ -228,23 +390,9 @@ export function Board({ onTileClick }: { onTileClick: (i: number) => void }) {
         className="relative grid aspect-square w-full overflow-hidden rounded-[1.5cqw] border-[0.5cqw] border-ink/80 bg-board shadow-xl"
         style={{ gridTemplateColumns: GRID_TEMPLATE, gridTemplateRows: GRID_TEMPLATE }}
       >
-        {BOARD.map((_, i) => {
-          const prop = state.properties[i]
-          const owner = prop?.owner ? state.players.find((p) => p.id === prop.owner) : undefined
-          return (
-            <Tile
-              key={i}
-              index={i}
-              prop={prop}
-              owner={owner}
-              highlight={highlightTile === i}
-              salary={state.settings.startSalary}
-              onClick={onTileClick}
-            />
-          )
-        })}
+        {tiles}
         <div style={{ gridRow: '2 / 11', gridColumn: '2 / 11' }} className="border-[0.12cqw] border-ink/45">
-          <BoardCenter state={state} />
+          <BoardCenter state={state} onDiceClick={onDiceClick} />
         </div>
         <TokenLayer players={state.players} motion={motion} />
       </div>

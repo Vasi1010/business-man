@@ -4,6 +4,7 @@ export type Route =
   | { name: 'home' }
   | { name: 'local' }
   | { name: 'new' }
+  | { name: 'preview' }
   | { name: 'join'; code: string }
   | { name: 'room'; code: string }
 
@@ -16,6 +17,7 @@ function parse(path: string): Route {
   if (room) return { name: 'room', code: room[1].toUpperCase() }
   if (path.startsWith('/local')) return { name: 'local' }
   if (path.startsWith('/new')) return { name: 'new' }
+  if (path.startsWith('/preview')) return { name: 'preview' }
   return { name: 'home' }
 }
 

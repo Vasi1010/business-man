@@ -15,15 +15,11 @@ import {
   type PlayerId,
 } from '../../engine'
 import { canAct, useController, type GameController } from '../controller'
+import { rollDice } from '../dice'
 import { useNow } from '../hooks/useNow'
 import { TokenBadge } from './Art'
 import { Button, Panel } from './ui'
 
-function rollDice(): [number, number] {
-  const buf = new Uint32Array(2)
-  crypto.getRandomValues(buf)
-  return [1 + (buf[0] % 6), 1 + (buf[1] % 6)]
-}
 
 function playerOf(s: GameState, id: PlayerId | null): Player | undefined {
   return id ? s.players.find((p) => p.id === id) : undefined

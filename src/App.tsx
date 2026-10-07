@@ -7,6 +7,7 @@ import { LocalPlay } from './ui/screens/LocalPlay'
 
 // Online play (and the Supabase SDK) loads only when needed.
 const CreateGame = lazy(() => import('./ui/screens/Online').then((m) => ({ default: m.CreateGame })))
+const PreviewPage = lazy(() => import('./ui/preview/PreviewPage').then((m) => ({ default: m.PreviewPage })))
 const OnlineRoom = lazy(() => import('./ui/screens/Online').then((m) => ({ default: m.OnlineRoom })))
 
 function getLastRoom(): string | null {
@@ -58,6 +59,9 @@ export default function App() {
   switch (route.name) {
     case 'local':
       screen = <LocalPlay />
+      break
+    case 'preview':
+      screen = <PreviewPage />
       break
     case 'new':
       screen = onlineConfigured ? <CreateGame /> : <Home onlineReady={false} onCreate={() => {}} resumeCode={null} />
