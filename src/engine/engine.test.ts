@@ -260,6 +260,21 @@ describe('doubles and jail', () => {
     expect(player(s, 'a').position).toBe(8)
   })
 
+  it('can switch off the extra roll (and the three-doubles Jail rule)', () => {
+    let s = game(3, { doublesRollAgain: false })
+    s = act(s, { type: 'roll', dice: [2, 2] }, 'a')
+    expect(s.turn.phase).toBe('end')
+    s = act(s, { type: 'endTurn' }, 'a')
+    expect(s.turn.playerId).toBe('b')
+    // Doubles still get you out of Jail.
+    s = arrange(s, (d) => {
+      d.players[1].inJail = true
+      place(d, 'b', 10)
+    })
+    s = act(s, { type: 'roll', dice: [3, 3] }, 'b')
+    expect(player(s, 'b').inJail).toBe(false)
+  })
+
   it('sends you to jail on three doubles without passing Start', () => {
     let s = arrange(game(), (d) => place(d, 'a', 30))
     s = act(s, { type: 'roll', dice: [1, 1] }, 'a') // 32

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { MIN_PLAYERS, applyAction, initialState, type Action, type PlayerSetup, type Settings, type TokenId } from '../../engine'
+import { DEFAULT_SETTINGS, MIN_PLAYERS, applyAction, initialState, type Action, type PlayerSetup, type Settings, type TokenId } from '../../engine'
 import { createRoom, getProfile, joinRoom, removeMember, saveProfile, setLastRoom, type Profile, type RoomState } from '../../net/room'
 import { useRoom } from '../../net/useRoom'
 import { toast } from '../../store/toasts'
@@ -118,14 +118,20 @@ function ProfileForm({
 }
 
 export function CreateGame() {
+  const [settings, setSettings] = useState<Settings>({ ...DEFAULT_SETTINGS })
   return (
     <Shell>
       <h1 className="font-display text-3xl">Create a game</h1>
       <Panel>
+        <h2 className="mb-1 font-semibold">House rules</h2>
+        <p className="mb-1 text-sm text-muted">Pick how your family plays. You can still change these in the lobby before starting.</p>
+        <SettingsEditor value={settings} onChange={setSettings} />
+      </Panel>
+      <Panel>
         <ProfileForm
           submitLabel="Create room"
           onSubmit={async (profile) => {
-            const code = await createRoom(profile)
+            const code = await createRoom(profile, settings)
             setLastRoom(code)
             navigate(`/room/${code}`, true)
           }}

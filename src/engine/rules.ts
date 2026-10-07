@@ -17,6 +17,7 @@ export const DEFAULT_SETTINGS: Settings = {
   wealthTaxMode: 'perBuilding',
   jailHalfRent: false,
   rollTwelveToStart: false,
+  doublesRollAgain: true,
   timeLimitMinutes: 0,
   ...SPECIAL_DEFAULTS,
 }

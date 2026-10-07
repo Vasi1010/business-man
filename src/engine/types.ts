@@ -34,6 +34,8 @@ export interface Settings {
   wealthTaxMode: WealthTaxMode
   jailHalfRent: boolean
   rollTwelveToStart: boolean
+  /** Doubles give another roll (and three doubles in a row go to Jail). */
+  doublesRollAgain: boolean
   startingCash: number
   startSalary: number
   /** 0 = no limit. */

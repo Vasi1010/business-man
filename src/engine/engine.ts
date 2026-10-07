@@ -669,7 +669,8 @@ function handle(ctx: Ctx, action: Action, actorId: PlayerId) {
         log(ctx, `${p.name} rolled a 12 and is off!`)
       }
 
-      if (doubles) {
+      const doublesRollAgain = st.doublesRollAgain !== false // older saves lack the setting
+      if (doubles && doublesRollAgain) {
         s.turn.doublesCount += 1
         if (s.turn.doublesCount >= 3) {
           log(ctx, `${p.name} rolled doubles three times in a row.`)
@@ -678,7 +679,7 @@ function handle(ctx: Ctx, action: Action, actorId: PlayerId) {
           return
         }
       }
-      s.turn.extraRoll = doubles
+      s.turn.extraRoll = doubles && doublesRollAgain
       moveForward(ctx, p, total, total)
       settlePhase(ctx)
       return

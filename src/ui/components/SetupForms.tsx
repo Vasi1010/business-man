@@ -97,6 +97,13 @@ export function SettingsEditor({
         <Toggle label="First-lap rule" hint="No buying until you've passed Start once" checked={value.firstLapRule} onChange={(v) => set('firstLapRule', v)} disabled={disabled} />
         <Toggle label="Auctions" hint="Declined properties go to a live auction" checked={value.auctions} onChange={(v) => set('auctions', v)} disabled={disabled} />
         <Toggle label="Half rent while owner is in Jail" checked={value.jailHalfRent} onChange={(v) => set('jailHalfRent', v)} disabled={disabled} />
+        <Toggle
+          label="Doubles roll again"
+          hint="Roll the same number on both dice to go again; three doubles in a row sends you to Jail"
+          checked={value.doublesRollAgain}
+          onChange={(v) => set('doublesRollAgain', v)}
+          disabled={disabled}
+        />
         <Toggle label="Roll a 12 to start moving" checked={value.rollTwelveToStart} onChange={(v) => set('rollTwelveToStart', v)} disabled={disabled} />
       </div>
       <div className="py-2">
