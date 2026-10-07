@@ -1,5 +1,7 @@
 # Business-Man
 
+**Play:** https://business-man-lemon.vercel.app
+
 A multiplayer property-trading board game for 2–6 friends and family, each playing on their own phone or laptop. It plays like the classic Indian trading game: Indian cities, ₹, Club, Rest House, Wealth Tax, and Chance / Community Chest results decided by the dice total that brought you there.
 
 - **Online:** create a room, share the link (`/join/ABC123`), play in real time. Refresh or phone sleep drops you straight back into your game.
