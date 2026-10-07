@@ -59,7 +59,7 @@ export function initialState(
   options: { now?: number } = {},
 ): GameState {
   if (players.length < MIN_PLAYERS || players.length > MAX_PLAYERS) {
-    throw new Error(`Lakhpati needs ${MIN_PLAYERS}–${MAX_PLAYERS} players`)
+    throw new Error(`Business-Man needs ${MIN_PLAYERS}–${MAX_PLAYERS} players`)
   }
   if (new Set(players.map((p) => p.id)).size !== players.length) {
     throw new Error('Player ids must be unique')

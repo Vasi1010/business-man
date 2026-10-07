@@ -1,4 +1,4 @@
--- Lakhpati: realtime multiplayer schema.
+-- Business-Man: realtime multiplayer schema.
 -- Run once in the Supabase SQL editor, or with `supabase db push`.
 
 create table if not exists public.games (

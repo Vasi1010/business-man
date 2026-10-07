@@ -86,7 +86,7 @@ export function Home({
           </Button>
         </Panel>
 
-        <footer className="text-center text-xs text-muted">An original game. All artwork drawn for Lakhpati.</footer>
+        <footer className="text-center text-xs text-muted">An original game. All artwork drawn for Business-Man.</footer>
       </main>
     </div>
   )

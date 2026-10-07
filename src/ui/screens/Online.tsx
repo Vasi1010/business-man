@@ -164,7 +164,7 @@ function Lobby({
 
   const share = async () => {
     try {
-      if (navigator.share) await navigator.share({ title: 'Join my Lakhpati game', text: `Room code ${code}`, url: link })
+      if (navigator.share) await navigator.share({ title: 'Join my Business-Man game', text: `Room code ${code}`, url: link })
       else {
         await navigator.clipboard.writeText(link)
         toast('Invite link copied')

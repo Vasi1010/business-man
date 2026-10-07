@@ -148,7 +148,7 @@ function BoardCenter({ state }: { state: GameState }) {
         <span className="h-[8cqw] w-[8cqw] [&>svg]:h-full [&>svg]:w-full">
           <LogoMark />
         </span>
-        <span className="font-display text-[7cqw] leading-none text-brand drop-shadow-sm">Lakhpati</span>
+        <span className="font-display text-[5.6cqw] leading-none text-brand drop-shadow-sm">Business-Man</span>
       </div>
       <div className="flex items-center gap-[1.5cqw] rounded-full bg-card/80 px-[2.5cqw] py-[1cqw] shadow-sm">
         {current && state.status === 'playing' && !state.auction && state.debts.length === 0 && (

@@ -46,7 +46,7 @@ export const useLocalGame = create<LocalGameStore>()(
       endGame: () => set({ game: null }),
     }),
     {
-      name: 'lakhpati:local',
+      name: 'businessman:local',
       version: 1,
       storage: createJSONStorage(() => localStorage),
       merge: (persisted, current) => {

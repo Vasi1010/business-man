@@ -32,16 +32,16 @@ interface Prefs {
 }
 
 export const usePrefs = create<Prefs>((set) => ({
-  theme: (read('lakhpati:theme') as ThemePref | null) ?? 'system',
-  muted: read('lakhpati:muted') === '1',
+  theme: (read('businessman:theme') as ThemePref | null) ?? 'system',
+  muted: read('businessman:muted') === '1',
   setTheme: (theme) => {
-    write('lakhpati:theme', theme)
+    write('businessman:theme', theme)
     applyTheme(theme)
     set({ theme })
   },
   toggleMuted: () =>
     set((s) => {
-      write('lakhpati:muted', s.muted ? '0' : '1')
+      write('businessman:muted', s.muted ? '0' : '1')
       return { muted: !s.muted }
     }),
 }))

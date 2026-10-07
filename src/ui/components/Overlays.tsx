@@ -101,7 +101,7 @@ export function EndScreen() {
           <div className="mt-3 flex flex-col items-center gap-2">
             <TokenBadge token={winner.token} color={winner.color} size={72} ring />
             <h2 className="font-display text-4xl text-brand">{winner.name} wins!</h2>
-            <p className="text-muted">The new Lakhpati of the table.</p>
+            <p className="text-muted">The richest Business-Man at the table.</p>
           </div>
         )}
         <ol className="mt-5 space-y-1.5 text-left">

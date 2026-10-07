@@ -220,11 +220,11 @@ export function LogoMark({ size = 40 }: { size?: number }) {
 
 export function Logo({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
   const mark = size === 'lg' ? 72 : size === 'md' ? 44 : 30
-  const text = size === 'lg' ? 'text-5xl' : size === 'md' ? 'text-3xl' : 'text-xl'
+  const text = size === 'lg' ? 'text-4xl' : size === 'md' ? 'text-3xl' : 'text-xl'
   return (
     <span className="inline-flex items-center gap-2">
       <LogoMark size={mark} />
-      <span className={`font-display ${text} leading-none text-brand`}>Lakhpati</span>
+      <span className={`font-display ${text} leading-none text-brand`}>Business-Man</span>
     </span>
   )
 }

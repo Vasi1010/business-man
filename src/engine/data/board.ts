@@ -1,5 +1,5 @@
 /**
- * Lakhpati board data — every price, rent and amount lives here.
+ * Business-Man board data — every price, rent and amount lives here.
  * Edit this file to rebalance the game; the engine reads nothing else.
  */
 

@@ -1,4 +1,4 @@
-# Lakhpati
+# Business-Man
 
 A multiplayer property-trading board game for 2–6 friends and family, each playing on their own phone or laptop. It plays like the classic Indian trading game: Indian cities, ₹, Club, Rest House, Wealth Tax, and Chance / Community Chest results decided by the dice total that brought you there.
 

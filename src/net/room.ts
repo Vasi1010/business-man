@@ -29,8 +29,8 @@ export interface Profile {
 }
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-const LAST_ROOM_KEY = 'lakhpati:lastRoom'
-const PROFILE_KEY = 'lakhpati:profile'
+const LAST_ROOM_KEY = 'businessman:lastRoom'
+const PROFILE_KEY = 'businessman:profile'
 
 function client() {
   if (!supabase) throw new Error('Online play is not configured')
