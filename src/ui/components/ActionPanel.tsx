@@ -7,6 +7,7 @@ import {
   isLegal,
   liquidationValue,
   ownableTile,
+  ownedTiles,
   rentFor,
   type Action,
   type GameState,
@@ -58,6 +59,43 @@ function useSubmit() {
   return { busy, submit }
 }
 
+/** One-tap ways to raise cash while settling a debt. */
+function RaiseFunds({
+  playerId,
+  busy,
+  submit,
+}: {
+  playerId: PlayerId
+  busy: boolean
+  submit: (a: Action, actor: PlayerId) => Promise<void>
+}) {
+  const { state: s } = useController()
+  const rows = ownedTiles(s, playerId).flatMap((tile) => {
+    const t = ownableTile(tile)
+    const options: { label: string; action: Action }[] = []
+    if (t.kind === 'city' && legal(s, { type: 'sellBuilding', tile }, playerId))
+      options.push({ label: `Sell building +${formatMoney(Math.floor(t.houseCost / 2))}`, action: { type: 'sellBuilding', tile } })
+    if (legal(s, { type: 'mortgage', tile }, playerId))
+      options.push({ label: `Mortgage +${formatMoney(t.mortgage)}`, action: { type: 'mortgage', tile } })
+    return options.length ? [{ tile, name: t.name, options }] : []
+  })
+  if (rows.length === 0) return null
+  return (
+    <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-xl border border-line p-2 text-sm">
+      {rows.map((r) => (
+        <li key={r.tile} className="flex flex-wrap items-center gap-1.5">
+          <span className="min-w-24 flex-1 font-semibold">{r.name}</span>
+          {r.options.map((o) => (
+            <Button key={o.action.type} size="sm" disabled={busy} onClick={() => void submit(o.action, playerId)}>
+              {o.label}
+            </Button>
+          ))}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 function DebtPanel({ c }: { c: GameController }) {
   const s = c.state
   const d = s.debts[0]
@@ -82,6 +120,7 @@ function DebtPanel({ c }: { c: GameController }) {
       ) : (
         <p className="mt-1 text-sm text-muted">You have enough cash to pay.</p>
       )}
+      {short > 0 && <RaiseFunds playerId={debtor.id} busy={busy} submit={submit} />}
       <div className="mt-3 flex flex-wrap gap-2">
         <Button variant="primary" size="lg" disabled={busy || short > 0} onClick={() => submit({ type: 'payDebt' }, d.debtorId)}>
           Pay {formatMoney(d.amount)}

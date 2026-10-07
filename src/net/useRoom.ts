@@ -1,17 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ensureSession, fetchRoom, subscribeRoom, writeState, type RoomRow, type RoomState } from './room'
+import { isNetworkError, mutateWithRetry } from './sync'
 
 export type RoomStatus = 'loading' | 'ready' | 'notFound' | 'error'
 
 export type Mutator = (state: RoomState, row: RoomRow) => RoomState | { error: string }
 
-const MAX_ATTEMPTS = 6
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
-
-function isNetworkError(e: unknown): boolean {
-  const msg = e instanceof Error ? e.message : String(e)
-  return /fetch|network|timeout|offline|Load failed/i.test(msg)
-}
 
 /**
  * Keeps one game row in sync via Supabase Realtime, and writes to it with
@@ -119,30 +113,17 @@ export function useRoom(code: string) {
   }, [connected, refresh])
 
   const mutate = useCallback(
-    async (fn: Mutator): Promise<string | null> => {
-      for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-        const cur = rowRef.current ?? (await refresh())
-        if (!cur) return 'Game not found'
-        const next = fn(cur.state, cur)
-        if ('error' in next) return next.error
-        try {
-          const ok = await writeState(code, cur.version, next)
-          setConnected(true)
-          if (ok) {
-            accept({ ...cur, state: next, status: next.status, version: cur.version + 1 })
-            return null
-          }
-          // Someone else wrote first: load their version and try again.
-          await refresh()
-        } catch (e) {
-          if (!isNetworkError(e)) return e instanceof Error ? e.message : 'Something went wrong'
-          setConnected(false)
-          await sleep(400 * 2 ** attempt)
-          await refresh()
-        }
-      }
-      return 'Could not reach the server — check your connection'
-    },
+    (fn: Mutator): Promise<string | null> =>
+      mutateWithRetry<RoomState, RoomRow>(
+        {
+          current: () => rowRef.current,
+          refresh,
+          write: (version, state) => writeState(code, version, state),
+          committed: (r) => accept({ ...r, status: r.state.status }),
+          setConnected,
+        },
+        fn,
+      ),
     [code, refresh, accept],
   )
 

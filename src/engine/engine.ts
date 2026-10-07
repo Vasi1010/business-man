@@ -923,12 +923,35 @@ function handle(ctx: Ctx, action: Action, actorId: PlayerId) {
 }
 
 /**
+ * Copy everything the engine may mutate. Log entries, events, settings, the
+ * last roll/card and trade bundles are only ever replaced, never mutated, so
+ * they can be shared. Much cheaper than structuredClone (this runs on every
+ * legality check the UI makes).
+ */
+function cloneState(s: GameState): GameState {
+  const properties: Record<number, PropertyState> = {}
+  for (const k in s.properties) properties[k] = { ...s.properties[k] }
+  return {
+    ...s,
+    players: s.players.map((p) => ({ ...p })),
+    properties,
+    turn: { ...s.turn },
+    debts: s.debts.map((d) => ({ ...d })),
+    auction: s.auction ? { ...s.auction, passed: [...s.auction.passed] } : null,
+    auctionQueue: [...s.auctionQueue],
+    trades: [...s.trades],
+    log: [...s.log],
+    lastEvents: [],
+  }
+}
+
+/**
  * Apply an action. Pure: the input state is never mutated.
  * Returns the next state and the events it produced, or an error message.
  */
 export function applyAction(state: GameState, action: Action, actorId: PlayerId): ApplyResult {
   if (state.status !== 'playing') return { error: 'The game is over' }
-  const s: GameState = structuredClone(state)
+  const s = cloneState(state)
   s.seq += 1
   const ctx: Ctx = { s, events: [], now: typeof action.now === 'number' ? action.now : 0 }
   try {
