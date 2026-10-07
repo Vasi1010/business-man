@@ -9,7 +9,7 @@ import { navigate } from '../router'
 import { PrefButtons } from '../screens/GameScreen'
 import { useDemoGame } from './useDemoGame'
 
-const Scene3D = lazy(() => import('./Scene3D'))
+const Scene3D = lazy(() => import('../three/Scene3D'))
 
 type Style = 'tilt' | 'webgl'
 
