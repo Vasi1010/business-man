@@ -78,14 +78,25 @@ export function saveProfile(p: Profile) {
 
 /* -------------------------------- auth --------------------------------- */
 
-/** Returns the current user id, signing in anonymously on first use. */
-export async function ensureSession(): Promise<string> {
-  const sb = client()
-  const { data } = await sb.auth.getSession()
-  if (data.session?.user) return data.session.user.id
-  const { data: signed, error } = await sb.auth.signInAnonymously()
-  if (error || !signed.user) throw new Error(error?.message ?? 'Could not sign in')
-  return signed.user.id
+let signingIn: Promise<string> | null = null
+
+/**
+ * Returns the current user id, signing in anonymously on first use.
+ * Concurrent callers share one sign-in; otherwise two anonymous users could be
+ * created at once and the player would join under one id but act as another.
+ */
+export function ensureSession(): Promise<string> {
+  signingIn ??= (async () => {
+    const sb = client()
+    const { data } = await sb.auth.getSession()
+    if (data.session?.user) return data.session.user.id
+    const { data: signed, error } = await sb.auth.signInAnonymously()
+    if (error || !signed.user) throw new Error(error?.message ?? 'Could not sign in')
+    return signed.user.id
+  })().finally(() => {
+    signingIn = null
+  })
+  return signingIn
 }
 
 /** The current user id if a session already exists (never creates one). */
@@ -157,7 +168,7 @@ export interface Subscription {
  * `onRow` receives every update (with `state` possibly missing if the payload
  * was too large — callers should re-fetch in that case).
  */
-export function subscribeRoom(
+export async function subscribeRoom(
   code: string,
   uid: string,
   handlers: {
@@ -165,8 +176,12 @@ export function subscribeRoom(
     onPresence: (ids: Set<string>) => void
     onStatus: (connected: boolean) => void
   },
-): Subscription {
+): Promise<Subscription> {
   const sb = client()
+  // Make sure the realtime socket carries this user's JWT before joining;
+  // otherwise row changes are filtered out by RLS as if we were logged out.
+  const { data } = await sb.auth.getSession()
+  if (data.session) await sb.realtime.setAuth(data.session.access_token)
   const channel: RealtimeChannel = sb.channel(`game:${code}`, { config: { presence: { key: uid } } })
   channel
     .on('postgres_changes', { event: '*', schema: 'public', table: 'games', filter: `id=eq.${code}` }, (payload) => {

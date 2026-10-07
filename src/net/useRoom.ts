@@ -61,7 +61,7 @@ export function useRoom(code: string) {
         setUid(id)
         await refresh()
         if (closed) return
-        sub = subscribeRoom(code, id, {
+        const subscription = await subscribeRoom(code, id, {
           onRow: (r) => {
             if (r.members && r.members.length === 0 && !r.state) {
               void refresh()
@@ -76,9 +76,15 @@ export function useRoom(code: string) {
           onPresence: setOnlineIds,
           onStatus: (ok) => {
             setConnected(ok)
-            if (ok) void refresh()
+            if (ok) {
+              void refresh()
+              // Change streaming can lag the SUBSCRIBED signal; catch anything written in that gap.
+              setTimeout(() => !closed && void refresh(), 2000)
+            }
           },
         })
+        if (closed) subscription.close()
+        else sub = subscription
       } catch (e) {
         if (closed) return
         if (isNetworkError(e)) setConnected(false)
@@ -105,10 +111,10 @@ export function useRoom(code: string) {
     }
   }, [refresh])
 
-  // While disconnected, poll so the game keeps moving even if realtime is down.
+  // Poll as a safety net: often while disconnected, occasionally otherwise
+  // (a single small read) in case a realtime message was dropped.
   useEffect(() => {
-    if (connected) return
-    const t = setInterval(() => void refresh(), 4000)
+    const t = setInterval(() => void refresh(), connected ? 15000 : 4000)
     return () => clearInterval(t)
   }, [connected, refresh])
 
