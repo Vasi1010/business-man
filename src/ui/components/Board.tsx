@@ -184,7 +184,7 @@ function TokenLayer({ players, motion }: { players: Player[]; motion: TokenMotio
     byTile.set(pos, [...(byTile.get(pos) ?? []), p])
   }
   return (
-    <div className="pointer-events-none absolute inset-0">
+    <div className="pointer-events-none absolute inset-0 z-20">
       {[...byTile.entries()].flatMap(([tile, group]) =>
         group.map((p, i) => {
           const c = tileCenter(tile)
