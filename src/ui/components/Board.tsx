@@ -13,7 +13,7 @@ import {
 } from '../../engine'
 import { GRID_TEMPLATE, placement, tileCenter, type Side } from '../boardLayout'
 import { useController } from '../controller'
-import { useAnimatedPositions } from '../hooks/useAnimatedPositions'
+import { useAnimatedPositions, type TokenMotion } from '../hooks/useAnimatedPositions'
 import { LogoMark, TileIcon, TokenBadge } from './Art'
 import { Dice } from './Dice'
 
@@ -175,7 +175,8 @@ const TOKEN_OFFSETS = [
   [0, 2],
 ]
 
-function TokenLayer({ players, positions }: { players: Player[]; positions: Record<string, number> }) {
+function TokenLayer({ players, motion }: { players: Player[]; motion: TokenMotion }) {
+  const { positions, hops, stepMs } = motion
   const byTile = new Map<number, Player[]>()
   for (const p of players) {
     if (p.bankrupt) continue
@@ -191,14 +192,20 @@ function TokenLayer({ players, positions }: { players: Player[]; positions: Reco
           return (
             <div
               key={p.id}
-              className="absolute h-[4.6cqw] w-[4.6cqw] transition-[left,top] duration-150 ease-out"
+              className="absolute h-[4.6cqw] w-[4.6cqw] ease-in-out"
               style={{
                 left: `calc(${c.x}% + ${ox * 1.5}cqw)`,
                 top: `calc(${c.y}% + ${oy * 1.5}cqw)`,
                 transform: 'translate(-50%, -50%)',
+                transitionProperty: 'left, top',
+                transitionDuration: `${Math.round((stepMs[p.id] ?? 200) * 0.85)}ms`,
               }}
             >
-              <div className="h-full w-full [&>svg]:h-full [&>svg]:w-full">
+              <div
+                key={hops[p.id] ?? 0}
+                className={`h-full w-full [&>svg]:h-full [&>svg]:w-full ${hops[p.id] ? 'token-hop' : ''}`}
+                style={{ animationDuration: `${Math.round(stepMs[p.id] ?? 200)}ms` }}
+              >
                 <TokenBadge token={p.token} color={p.color} ring title={p.name} />
               </div>
               {p.inJail && <span className="absolute -right-[0.6cqw] -top-[0.6cqw] h-[1.8cqw] w-[1.8cqw] rounded-full border border-white bg-ink" aria-hidden />}
@@ -212,7 +219,7 @@ function TokenLayer({ players, positions }: { players: Player[]; positions: Reco
 
 export function Board({ onTileClick }: { onTileClick: (i: number) => void }) {
   const { state } = useController()
-  const positions = useAnimatedPositions(state.players)
+  const motion = useAnimatedPositions(state.players)
   const highlightTile = state.auction?.tile ?? state.turn.pendingTile
 
   return (
@@ -239,7 +246,7 @@ export function Board({ onTileClick }: { onTileClick: (i: number) => void }) {
         <div style={{ gridRow: '2 / 11', gridColumn: '2 / 11' }} className="border-[0.12cqw] border-ink/45">
           <BoardCenter state={state} />
         </div>
-        <TokenLayer players={state.players} positions={positions} />
+        <TokenLayer players={state.players} motion={motion} />
       </div>
     </div>
   )

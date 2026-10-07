@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { formatMoney, ranking, type CardReveal as Reveal } from '../../engine'
 import { useToasts } from '../../store/toasts'
 import { useController } from '../controller'
+import { arrivalDelay } from '../hooks/useAnimatedPositions'
 import { TileIcon, TokenBadge } from './Art'
 import { Button } from './ui'
 
@@ -43,8 +44,19 @@ export function CardReveal() {
     if (card.seq > initialSeq) setShown(card)
   }
 
+  // Reveal once the token has finished walking to the card tile.
+  const [visibleSeq, setVisibleSeq] = useState<number | null>(null)
+  const visible = !!shown && visibleSeq === shown.seq
+  const roll = state.lastRoll
+  const walkMs = shown && roll && roll.seq === shown.seq ? arrivalDelay(roll.dice[0] + roll.dice[1]) : 0
   useEffect(() => {
     if (!shown) return
+    const t = setTimeout(() => setVisibleSeq(shown.seq), walkMs)
+    return () => clearTimeout(t)
+  }, [shown, walkMs])
+
+  useEffect(() => {
+    if (!shown || !visible) return
     const t = setTimeout(() => setShown(null), 4200)
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setShown(null)
     document.addEventListener('keydown', onKey)
@@ -52,9 +64,9 @@ export function CardReveal() {
       clearTimeout(t)
       document.removeEventListener('keydown', onKey)
     }
-  }, [shown])
+  }, [shown, visible])
 
-  if (!shown) return null
+  if (!shown || !visible) return null
   const who = state.players.find((p) => p.id === shown.playerId)
   const chance = shown.deck === 'chance'
   return (
