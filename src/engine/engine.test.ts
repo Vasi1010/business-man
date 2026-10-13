@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { BOARD, BOARD_SIZE, JAIL_TILE } from './data/board'
 import { applyAction, initialState } from './engine'
 import { formatMoney } from './format'
 import { netWorth, rentFor, waitingOn } from './rules'
@@ -6,6 +7,57 @@ import type { Action } from './types'
 import { NOW, act, actError, arrange, cash, game, own, place, player, players, roll } from './testUtils'
 
 const START_CASH = 15000
+
+/** Board index of a square, by name (the first one for repeated names like Chance). */
+function T(name: string): number {
+  const i = BOARD.findIndex((t) => t.name === name)
+  if (i < 0) throw new Error(`No square called ${name}`)
+  return i
+}
+
+/** The square `steps` before `tile`, going round the board. */
+const before = (tile: number, steps: number) => (tile - steps + BOARD_SIZE) % BOARD_SIZE
+
+const MUMBAI = T('Mumbai')
+const AHMEDABAD = T('Ahmedabad')
+const JAIPUR = T('Jaipur')
+const INDORE = T('Indore')
+const DELHI = T('Delhi')
+const AGRA = T('Agra')
+const KANPUR = T('Kanpur')
+const PATNA = T('Patna')
+const DARJEELING = T('Darjeeling')
+const CALCUTTA = T('Calcutta')
+const HYDERABAD = T('Hyderabad')
+const RAILWAY = T('Railway')
+const BUS = T('B.E.S.T. Bus')
+const AIR = T('Air India')
+const BOAT = T('Motor Boat')
+const ELECTRIC = T('Electric Company')
+const WATER = T('Water Works')
+const INCOME_TAX = T('Income Tax')
+const WEALTH_TAX = T('Wealth Tax')
+const CLUB = T('Club')
+const REST_HOUSE = T('Rest House')
+const BLUES = [MUMBAI, AHMEDABAD, DARJEELING, CALCUTTA, HYDERABAD]
+/** A Chance square whose next transport, Delhi trip and "back 3" outcomes are tested below. */
+const CHANCE = 20
+const CHEST = 16
+
+describe('board', () => {
+  it('matches the printed board: 36 squares, 4 colours of 5 cities, 6 services', () => {
+    expect(BOARD_SIZE).toBe(36)
+    const cities = BOARD.filter((t) => t.kind === 'city')
+    expect(cities).toHaveLength(20)
+    for (const g of [1, 2, 3, 4]) expect(cities.filter((t) => t.kind === 'city' && t.group === g)).toHaveLength(5)
+    expect(BOARD.filter((t) => t.kind === 'service')).toHaveLength(6)
+    expect(BOARD[CHANCE].kind).toBe('chance')
+    expect(BOARD[CHEST].kind).toBe('chest')
+    expect(JAIL_TILE).toBe(9)
+    expect(CLUB).toBe(18)
+    expect(REST_HOUSE).toBe(27)
+  })
+})
 
 describe('setup', () => {
   it('creates players with starting cash on Start', () => {
@@ -29,9 +81,9 @@ describe('setup', () => {
 
   it('never mutates the input state', () => {
     const s = game()
-    const before = JSON.stringify(s)
+    const json = JSON.stringify(s)
     roll(s, 'a', 5)
-    expect(JSON.stringify(s)).toBe(before)
+    expect(JSON.stringify(s)).toBe(json)
   })
 })
 
@@ -52,14 +104,14 @@ describe('movement and Start', () => {
   })
 
   it('pays salary when passing Start', () => {
-    let s = arrange(game(), (d) => place(d, 'a', 32))
-    s = roll(s, 'a', 6) // 32 -> 2 (Community Chest 6: collect ₹250 from each player)
-    expect(player(s, 'a').position).toBe(2)
-    expect(cash(s, 'a')).toBe(START_CASH + 1500 + 250 * 2)
+    let s = arrange(game(), (d) => place(d, 'a', before(WATER, 6)))
+    s = roll(s, 'a', 6)
+    expect(player(s, 'a').position).toBe(WATER)
+    expect(cash(s, 'a')).toBe(START_CASH + 1500)
   })
 
   it('pays salary when landing exactly on Start', () => {
-    let s = arrange(game(), (d) => place(d, 'a', 28))
+    let s = arrange(game(), (d) => place(d, 'a', before(0, 8)))
     s = roll(s, 'a', 8)
     expect(player(s, 'a').position).toBe(0)
     expect(cash(s, 'a')).toBe(START_CASH + 1500)
@@ -67,8 +119,8 @@ describe('movement and Start', () => {
   })
 
   it('uses the Start salary setting', () => {
-    let s = arrange(game(3, { startSalary: 2000 }), (d) => place(d, 'a', 31))
-    s = roll(s, 'a', 6) // 31 -> 1 Agra
+    let s = arrange(game(3, { startSalary: 2000 }), (d) => place(d, 'a', before(MUMBAI, 6)))
+    s = roll(s, 'a', 6)
     expect(cash(s, 'a')).toBe(START_CASH + 2000)
   })
 
@@ -80,8 +132,8 @@ describe('movement and Start', () => {
   })
 
   it('cannot roll twice without doubles, and ends the turn', () => {
-    let s = roll(game(3, { auctions: true }), 'a', 5)
-    expect(s.turn.phase).toBe('buy') // Railway
+    let s = roll(game(3, { auctions: true }), 'a', RAILWAY)
+    expect(s.turn.phase).toBe('buy')
     s = act(s, { type: 'decline', now: NOW }, 'a')
     s = act(s, { type: 'passAuction' }, 'a')
     s = act(s, { type: 'passAuction' }, 'b')
@@ -97,35 +149,35 @@ describe('first-lap rule', () => {
   it('is off by default', () => {
     let s = game(3, {}, { lapped: false })
     expect(s.settings.firstLapRule).toBe(false)
-    s = roll(s, 'a', 8)
+    s = roll(s, 'a', JAIPUR)
     expect(s.turn.phase).toBe('buy')
   })
 
   it('blocks buying before passing Start', () => {
     let s = game(3, { firstLapRule: true }, { lapped: false })
-    s = roll(s, 'a', 8) // Jaipur
+    s = roll(s, 'a', JAIPUR)
     expect(s.turn.phase).toBe('end')
     expect(s.turn.pendingTile).toBeNull()
-    expect(s.properties[8].owner).toBeNull()
+    expect(s.properties[JAIPUR].owner).toBeNull()
   })
 
   it('allows buying after passing Start', () => {
-    let s = arrange(game(3, { firstLapRule: true }, { lapped: false }), (d) => place(d, 'a', 31))
-    s = roll(s, 'a', 6) // passes Start, lands on Agra
+    let s = arrange(game(3, { firstLapRule: true }, { lapped: false }), (d) => place(d, 'a', before(MUMBAI, 6)))
+    s = roll(s, 'a', 6)
     expect(s.turn.phase).toBe('buy')
     s = act(s, { type: 'buy' }, 'a')
-    expect(s.properties[1].owner).toBe('a')
+    expect(s.properties[MUMBAI].owner).toBe('a')
   })
 
   it('can be switched off', () => {
     let s = game(3, { firstLapRule: false }, { lapped: false })
-    s = roll(s, 'a', 8)
+    s = roll(s, 'a', JAIPUR)
     expect(s.turn.phase).toBe('buy')
   })
 
   it('still charges rent before the first lap', () => {
-    let s = arrange(game(3, { firstLapRule: true }, { lapped: false }), (d) => own(d, 'b', 8))
-    s = roll(s, 'a', 8)
+    let s = arrange(game(3, { firstLapRule: true }, { lapped: false }), (d) => own(d, 'b', JAIPUR))
+    s = roll(s, 'a', JAIPUR)
     expect(cash(s, 'a')).toBe(START_CASH - 250)
     expect(cash(s, 'b')).toBe(START_CASH + 250)
   })
@@ -133,68 +185,71 @@ describe('first-lap rule', () => {
 
 describe('buying', () => {
   it('buys at list price', () => {
-    let s = roll(game(), 'a', 8)
+    let s = roll(game(), 'a', JAIPUR)
     s = act(s, { type: 'buy' }, 'a')
-    expect(s.properties[8].owner).toBe('a')
+    expect(s.properties[JAIPUR].owner).toBe('a')
     expect(cash(s, 'a')).toBe(START_CASH - 3000)
     expect(s.turn.phase).toBe('end')
   })
 
   it('cannot buy without enough cash', () => {
     let s = arrange(game(), (d) => (d.players[0].cash = 100))
-    s = roll(s, 'a', 8)
+    s = roll(s, 'a', JAIPUR)
     expect(actError(s, { type: 'buy' }, 'a')).toMatch(/need/)
   })
 
   it('auctions are off by default: declining leaves it with the bank', () => {
     expect(game(3).settings.auctions).toBe(false)
-    let s = roll(game(3), 'a', 8)
+    let s = roll(game(3), 'a', JAIPUR)
     s = act(s, { type: 'decline', now: NOW }, 'a')
     expect(s.auction).toBeNull()
-    expect(s.properties[8].owner).toBeNull()
+    expect(s.properties[JAIPUR].owner).toBeNull()
     expect(s.turn.phase).toBe('end')
   })
 })
 
 describe('rent', () => {
+  /** Ayaan lands on Calcutta (7 squares after the Club). */
+  const toCalcutta = (d: Parameters<Parameters<typeof arrange>[1]>[0]) => place(d, 'a', before(CALCUTTA, 7))
+
   it('charges site rent', () => {
-    let s = arrange(game(), (d) => own(d, 'b', 35))
-    s = arrange(s, (d) => place(d, 'a', 28))
+    let s = arrange(game(), (d) => {
+      own(d, 'b', CALCUTTA)
+      toCalcutta(d)
+    })
     s = roll(s, 'a', 7)
-    expect(cash(s, 'a')).toBe(START_CASH - 1200)
-    expect(cash(s, 'b')).toBe(START_CASH + 1200)
-    expect(s.log.at(-1)?.text).toBe('Ayaan paid ₹1,200 rent to Sara for Mumbai.')
+    expect(cash(s, 'a')).toBe(START_CASH - 1100)
+    expect(cash(s, 'b')).toBe(START_CASH + 1100)
+    expect(s.log.at(-1)?.text).toBe('Ayaan paid ₹1,100 rent to Sara for Calcutta.')
   })
 
-  it('raises rent the more cities of that colour the owner has', () => {
-    const landOnMumbai = (...blues: number[]) => {
+  it('adds ₹1,000 for each other city of that colour the owner has', () => {
+    const others = BLUES.filter((t) => t !== CALCUTTA)
+    const rentWith = (n: number) => {
       const s = arrange(game(), (d) => {
-        own(d, 'b', 35, ...blues)
-        place(d, 'a', 27)
+        own(d, 'b', CALCUTTA, ...others.slice(0, n))
+        toCalcutta(d)
       })
-      return START_CASH - cash(roll(s, 'a', 8), 'a')
+      return START_CASH - cash(roll(s, 'a', 7), 'a')
     }
-    expect(landOnMumbai()).toBe(1200)
-    expect(landOnMumbai(32)).toBe(2200) // +1,000
-    expect(landOnMumbai(29, 32)).toBe(3200) // +2,000
-    expect(landOnMumbai(28, 29, 32)).toBe(4200) // +3,000
+    expect([0, 1, 2, 3, 4].map(rentWith)).toEqual([1100, 2100, 3100, 4100, 5100])
   })
 
   it('ignores cities of other colours', () => {
-    const s = arrange(game(), (d) => own(d, 'b', 35, 1, 3, 25))
-    expect(rentFor(s, 35)).toBe(1200)
+    const s = arrange(game(), (d) => own(d, 'b', CALCUTTA, AGRA, PATNA, DELHI))
+    expect(rentFor(s, CALCUTTA)).toBe(1100)
   })
 
   it('charges house and hotel rent', () => {
     const base = arrange(game(), (d) => {
-      own(d, 'b', 35)
-      place(d, 'a', 28)
+      own(d, 'b', CALCUTTA)
+      toCalcutta(d)
       d.players[0].cash = 50_000
     })
-    const expected = [5400, 9600, 14400, 17400]
+    const expected = [4950, 8800, 13200, 16200]
     for (let level = 1; level <= 4; level++) {
       const s = roll(
-        arrange(base, (d) => (d.properties[35].level = level)),
+        arrange(base, (d) => (d.properties[CALCUTTA].level = level)),
         'a',
         7,
       )
@@ -204,19 +259,19 @@ describe('rent', () => {
 
   it('applies the colour bonus to house and hotel rent too', () => {
     const s = arrange(game(), (d) => {
-      own(d, 'b', 28, 29, 32, 35)
-      d.properties[35].level = 4
-      d.properties[32].level = 1
+      own(d, 'b', ...BLUES)
+      d.properties[CALCUTTA].level = 4
+      d.properties[HYDERABAD].level = 1
     })
-    expect(rentFor(s, 35)).toBe(17400 + 3000)
-    expect(rentFor(s, 32)).toBe(4950 + 3000)
+    expect(rentFor(s, CALCUTTA)).toBe(16200 + 4000)
+    expect(rentFor(s, HYDERABAD)).toBe(4050 + 4000)
   })
 
   it('charges no rent on mortgaged tiles', () => {
     let s = arrange(game(), (d) => {
-      own(d, 'b', 35)
-      d.properties[35].mortgaged = true
-      place(d, 'a', 28)
+      own(d, 'b', CALCUTTA)
+      d.properties[CALCUTTA].mortgaged = true
+      toCalcutta(d)
     })
     s = roll(s, 'a', 7)
     expect(cash(s, 'a')).toBe(START_CASH)
@@ -224,33 +279,34 @@ describe('rent', () => {
 
   it('charges paired service rent', () => {
     // Railway alone
-    let s = arrange(game(), (d) => own(d, 'b', 5))
-    s = roll(s, 'a', 5)
+    let s = arrange(game(), (d) => own(d, 'b', RAILWAY))
+    s = roll(s, 'a', RAILWAY)
     expect(cash(s, 'a')).toBe(START_CASH - 1100)
     // Railway with B.E.S.T. Bus
-    s = arrange(game(), (d) => own(d, 'b', 5, 14))
-    s = roll(s, 'a', 5)
+    s = arrange(game(), (d) => own(d, 'b', RAILWAY, BUS))
+    s = roll(s, 'a', RAILWAY)
     expect(cash(s, 'a')).toBe(START_CASH - 2200)
     // B.E.S.T. Bus with Railway
     s = arrange(game(), (d) => {
-      own(d, 'b', 5, 14)
-      place(d, 'a', 9)
+      own(d, 'b', RAILWAY, BUS)
+      place(d, 'a', before(BUS, 4))
     })
-    s = roll(s, 'a', 5)
+    s = roll(s, 'a', 4)
     expect(cash(s, 'a')).toBe(START_CASH - 1100)
   })
 
   it('computes every service rent from the table', () => {
-    const s = arrange(game(), (d) => own(d, 'b', 5, 14, 21, 30, 11, 24))
-    expect([5, 14, 21, 30, 11, 24].map((i) => rentFor(s, i))).toEqual([2200, 1100, 2400, 900, 1000, 1000])
-    const single = arrange(game(), (d) => own(d, 'b', 21, 11))
-    expect(rentFor(single, 21)).toBe(1200)
-    expect(rentFor(single, 11)).toBe(500)
+    const services = [RAILWAY, BUS, AIR, BOAT, ELECTRIC, WATER]
+    const s = arrange(game(), (d) => own(d, 'b', ...services))
+    expect(services.map((i) => rentFor(s, i))).toEqual([2200, 1100, 2400, 900, 1000, 1000])
+    const single = arrange(game(), (d) => own(d, 'b', AIR, ELECTRIC))
+    expect(rentFor(single, AIR)).toBe(1200)
+    expect(rentFor(single, ELECTRIC)).toBe(500)
   })
 
   it('pays no rent on your own tile', () => {
-    let s = arrange(game(), (d) => own(d, 'a', 8))
-    s = roll(s, 'a', 8)
+    let s = arrange(game(), (d) => own(d, 'a', JAIPUR))
+    s = roll(s, 'a', JAIPUR)
     expect(cash(s, 'a')).toBe(START_CASH)
     expect(s.turn.phase).toBe('end')
   })
@@ -258,19 +314,20 @@ describe('rent', () => {
   it('halves rent while the owner is in jail when the house rule is on', () => {
     const arrangeJail = (on: boolean) =>
       arrange(game(3, { jailHalfRent: on }), (d) => {
-        own(d, 'b', 35)
+        own(d, 'b', CALCUTTA)
         d.players[1].inJail = true
-        d.players[1].position = 9
-        place(d, 'a', 28)
+        d.players[1].position = JAIL_TILE
+        toCalcutta(d)
       })
-    expect(cash(roll(arrangeJail(false), 'a', 7), 'b')).toBe(START_CASH + 1200)
-    expect(cash(roll(arrangeJail(true), 'a', 7), 'b')).toBe(START_CASH + 600)
+    expect(cash(roll(arrangeJail(false), 'a', 7), 'b')).toBe(START_CASH + 1100)
+    expect(cash(roll(arrangeJail(true), 'a', 7), 'b')).toBe(START_CASH + 550)
   })
 })
 
 describe('doubles and jail', () => {
   it('gives another roll on doubles', () => {
-    let s = act(game(), { type: 'roll', dice: [2, 2] }, 'a') // Income Tax
+    let s = arrange(game(), (d) => own(d, 'a', AHMEDABAD))
+    s = act(s, { type: 'roll', dice: [2, 2] }, 'a') // your own Ahmedabad
     expect(s.turn.phase).toBe('roll')
     expect(actError(s, { type: 'endTurn' }, 'a')).toMatch(/Roll first/)
     s = act(s, { type: 'roll', dice: [1, 3] }, 'a')
@@ -278,7 +335,7 @@ describe('doubles and jail', () => {
   })
 
   it('can switch off the extra roll (and the three-doubles Jail rule)', () => {
-    let s = game(3, { doublesRollAgain: false })
+    let s = arrange(game(3, { doublesRollAgain: false }), (d) => own(d, 'a', AHMEDABAD))
     s = act(s, { type: 'roll', dice: [2, 2] }, 'a')
     expect(s.turn.phase).toBe('end')
     s = act(s, { type: 'endTurn' }, 'a')
@@ -286,42 +343,42 @@ describe('doubles and jail', () => {
     // Doubles still get you out of Jail.
     s = arrange(s, (d) => {
       d.players[1].inJail = true
-      place(d, 'b', 9)
+      place(d, 'b', JAIL_TILE)
     })
     s = act(s, { type: 'roll', dice: [3, 3] }, 'b')
     expect(player(s, 'b').inJail).toBe(false)
   })
 
   it('sends you to jail on three doubles without passing Start', () => {
-    let s = arrange(game(), (d) => place(d, 'a', 27))
-    s = act(s, { type: 'roll', dice: [1, 1] }, 'a') // 29
+    let s = arrange(game(), (d) => place(d, 'a', before(DARJEELING, 2)))
+    s = act(s, { type: 'roll', dice: [1, 1] }, 'a') // Darjeeling
     s = act(s, { type: 'buy' }, 'a')
-    s = act(s, { type: 'roll', dice: [2, 2] }, 'a') // 33 chance(4) pay 500
-    const before = cash(s, 'a')
+    s = act(s, { type: 'roll', dice: [2, 2] }, 'a') // Rest House
+    const cashBefore = cash(s, 'a')
     s = act(s, { type: 'roll', dice: [3, 3] }, 'a')
     expect(player(s, 'a').inJail).toBe(true)
-    expect(player(s, 'a').position).toBe(9)
-    expect(cash(s, 'a')).toBe(before)
+    expect(player(s, 'a').position).toBe(JAIL_TILE)
+    expect(cash(s, 'a')).toBe(cashBefore)
     expect(s.turn.phase).toBe('end')
   })
 
   it('lets a jailed player pay the fine', () => {
     let s = arrange(game(), (d) => {
       d.players[0].inJail = true
-      place(d, 'a', 9)
+      place(d, 'a', JAIL_TILE)
     })
     s = act(s, { type: 'payJailFine' }, 'a')
     expect(player(s, 'a').inJail).toBe(false)
     expect(cash(s, 'a')).toBe(START_CASH - 500)
     s = roll(s, 'a', 4)
-    expect(player(s, 'a').position).toBe(13)
+    expect(player(s, 'a').position).toBe(JAIL_TILE + 4)
   })
 
   it('lets a jailed player use a pass', () => {
     let s = arrange(game(), (d) => {
       d.players[0].inJail = true
       d.players[0].jailPasses = 1
-      place(d, 'a', 9)
+      place(d, 'a', JAIL_TILE)
     })
     s = act(s, { type: 'useJailPass' }, 'a')
     expect(player(s, 'a').inJail).toBe(false)
@@ -333,11 +390,11 @@ describe('doubles and jail', () => {
   it('releases on doubles with no extra roll', () => {
     let s = arrange(game(), (d) => {
       d.players[0].inJail = true
-      place(d, 'a', 9)
+      place(d, 'a', JAIL_TILE)
     })
-    s = act(s, { type: 'roll', dice: [2, 2] }, 'a')
+    s = act(s, { type: 'roll', dice: [2, 2] }, 'a') // B.E.S.T. Bus
     expect(player(s, 'a').inJail).toBe(false)
-    expect(player(s, 'a').position).toBe(13)
+    expect(player(s, 'a').position).toBe(BUS)
     expect(s.turn.phase).toBe('buy')
     s = act(s, { type: 'buy' }, 'a')
     expect(s.turn.phase).toBe('end')
@@ -346,43 +403,43 @@ describe('doubles and jail', () => {
   it('forces the fine and moves after three failed attempts', () => {
     let s = arrange(game(2), (d) => {
       d.players[0].inJail = true
-      place(d, 'a', 9)
+      place(d, 'a', JAIL_TILE)
     })
     for (let attempt = 1; attempt <= 2; attempt++) {
       s = roll(s, 'a', 5)
       expect(player(s, 'a').inJail).toBe(true)
       expect(player(s, 'a').jailAttempts).toBe(attempt)
       s = act(s, { type: 'endTurn' }, 'a')
-      s = roll(s, 'b', attempt === 1 ? 4 : 5) // Income Tax, then Just Visiting
+      s = roll(s, 'b', attempt === 1 ? INCOME_TAX : JAIL_TILE - INCOME_TAX) // Income Tax, then Just Visiting
       s = act(s, { type: 'endTurn' }, 'b')
     }
     s = roll(s, 'a', 5) // third failure
     expect(player(s, 'a').inJail).toBe(false)
-    expect(player(s, 'a').position).toBe(14)
+    expect(player(s, 'a').position).toBe(JAIL_TILE + 5)
     expect(cash(s, 'a')).toBe(START_CASH - 500)
   })
 
   it('still collects rent while in jail', () => {
     let s = arrange(game(), (d) => {
-      own(d, 'a', 8)
+      own(d, 'a', JAIPUR)
       d.players[0].inJail = true
-      place(d, 'a', 9)
+      place(d, 'a', JAIL_TILE)
       d.turn.playerId = 'b'
     })
-    s = roll(s, 'b', 8)
+    s = roll(s, 'b', JAIPUR)
     expect(cash(s, 'a')).toBe(START_CASH + 250)
   })
 
   it('lets a jailed player build and mortgage', () => {
     let s = arrange(game(), (d) => {
-      own(d, 'a', 1, 3, 8)
+      own(d, 'a', AGRA, PATNA, JAIPUR)
       d.players[0].inJail = true
-      place(d, 'a', 9)
+      place(d, 'a', JAIL_TILE)
     })
-    s = act(s, { type: 'build', tile: 1 }, 'a')
-    s = act(s, { type: 'mortgage', tile: 8 }, 'a')
-    expect(s.properties[1].level).toBe(1)
-    expect(s.properties[8].mortgaged).toBe(true)
+    s = act(s, { type: 'build', tile: AGRA }, 'a')
+    s = act(s, { type: 'mortgage', tile: JAIPUR }, 'a')
+    expect(s.properties[AGRA].level).toBe(1)
+    expect(s.properties[JAIPUR].mortgaged).toBe(true)
   })
 })
 
@@ -402,65 +459,65 @@ describe('roll a 12 to start', () => {
 describe('building', () => {
   const withCity = () =>
     arrange(game(), (d) => {
-      own(d, 'a', 1)
+      own(d, 'a', AGRA)
       d.players[0].cash = 30_000
     })
 
-  it("builds on any city you own, without the rest of its colour, up to a hotel", () => {
+  it('builds on any city you own, without the rest of its colour, up to a hotel', () => {
     let s = withCity()
-    for (let i = 0; i < 4; i++) s = act(s, { type: 'build', tile: 1 }, 'a')
-    expect(s.properties[1].level).toBe(4)
+    for (let i = 0; i < 4; i++) s = act(s, { type: 'build', tile: AGRA }, 'a')
+    expect(s.properties[AGRA].level).toBe(4)
     expect(cash(s, 'a')).toBe(30_000 - 4 * 3000)
-    expect(actError(s, { type: 'build', tile: 1 }, 'a')).toMatch(/already has a hotel/)
+    expect(actError(s, { type: 'build', tile: AGRA }, 'a')).toMatch(/already has a hotel/)
   })
 
   it('needs the house cost in cash', () => {
     const s = arrange(withCity(), (d) => (d.players[0].cash = 2000))
-    expect(actError(s, { type: 'build', tile: 1 }, 'a')).toMatch(/need/)
+    expect(actError(s, { type: 'build', tile: AGRA }, 'a')).toMatch(/need/)
   })
 
   it('blocks building on a mortgaged city, but not because of others', () => {
     const s = arrange(withCity(), (d) => {
-      own(d, 'a', 3)
-      d.properties[3].mortgaged = true
+      own(d, 'a', KANPUR)
+      d.properties[KANPUR].mortgaged = true
     })
-    expect(actError(s, { type: 'build', tile: 3 }, 'a')).toMatch(/Unmortgage/)
-    expect(act(s, { type: 'build', tile: 1 }, 'a').properties[1].level).toBe(1)
+    expect(actError(s, { type: 'build', tile: KANPUR }, 'a')).toMatch(/Unmortgage/)
+    expect(act(s, { type: 'build', tile: AGRA }, 'a').properties[AGRA].level).toBe(1)
   })
 
   it('only allows building on your turn', () => {
     const s = arrange(withCity(), (d) => (d.turn.playerId = 'b'))
-    expect(actError(s, { type: 'build', tile: 1 }, 'a')).toMatch(/your turn/)
+    expect(actError(s, { type: 'build', tile: AGRA }, 'a')).toMatch(/your turn/)
   })
 
   it('sells buildings for half the cost, in any order', () => {
     let s = arrange(withCity(), (d) => {
-      own(d, 'a', 3)
-      d.properties[1].level = 4
-      d.properties[3].level = 3
+      own(d, 'a', KANPUR)
+      d.properties[AGRA].level = 4
+      d.properties[KANPUR].level = 3
     })
-    s = act(s, { type: 'sellBuilding', tile: 3 }, 'a')
-    expect(s.properties[3].level).toBe(2)
+    s = act(s, { type: 'sellBuilding', tile: KANPUR }, 'a')
+    expect(s.properties[KANPUR].level).toBe(2)
     expect(cash(s, 'a')).toBe(30_000 + 1500)
-    s = act(s, { type: 'sellBuilding', tile: 1 }, 'a')
-    expect(s.properties[1].level).toBe(3)
+    s = act(s, { type: 'sellBuilding', tile: AGRA }, 'a')
+    expect(s.properties[AGRA].level).toBe(3)
   })
 
   it('one-house rule: one house, then a hotel that costs three houses', () => {
     let s = arrange(game(3, { oneHouseRule: true }), (d) => {
-      own(d, 'a', 1)
+      own(d, 'a', AGRA)
       d.players[0].cash = 30_000
     })
-    s = act(s, { type: 'build', tile: 1 }, 'a')
-    expect(s.properties[1].level).toBe(1)
+    s = act(s, { type: 'build', tile: AGRA }, 'a')
+    expect(s.properties[AGRA].level).toBe(1)
     expect(cash(s, 'a')).toBe(30_000 - 3000)
-    s = act(s, { type: 'build', tile: 1 }, 'a')
-    expect(s.properties[1].level).toBe(4)
+    s = act(s, { type: 'build', tile: AGRA }, 'a')
+    expect(s.properties[AGRA].level).toBe(4)
     expect(cash(s, 'a')).toBe(30_000 - 3000 - 9000)
-    expect(actError(s, { type: 'build', tile: 1 }, 'a')).toMatch(/already has a hotel/)
+    expect(actError(s, { type: 'build', tile: AGRA }, 'a')).toMatch(/already has a hotel/)
     // Selling the hotel goes back to one house and refunds half of its cost.
-    s = act(s, { type: 'sellBuilding', tile: 1 }, 'a')
-    expect(s.properties[1].level).toBe(1)
+    s = act(s, { type: 'sellBuilding', tile: AGRA }, 'a')
+    expect(s.properties[AGRA].level).toBe(1)
     expect(cash(s, 'a')).toBe(30_000 - 3000 - 9000 + 4500)
   })
 
@@ -469,67 +526,67 @@ describe('building', () => {
   })
 
   it('cannot build on services', () => {
-    const s = arrange(game(), (d) => own(d, 'a', 5, 14))
-    expect(actError(s, { type: 'build', tile: 5 }, 'a')).toMatch(/only build on cities/)
+    const s = arrange(game(), (d) => own(d, 'a', RAILWAY, BUS))
+    expect(actError(s, { type: 'build', tile: RAILWAY }, 'a')).toMatch(/only build on cities/)
   })
 })
 
 describe('mortgage', () => {
   it('mortgages for the mortgage value and unmortgages at +10%', () => {
-    let s = arrange(game(), (d) => own(d, 'a', 35))
-    s = act(s, { type: 'mortgage', tile: 35 }, 'a')
+    let s = arrange(game(), (d) => own(d, 'a', MUMBAI))
+    s = act(s, { type: 'mortgage', tile: MUMBAI }, 'a')
     expect(cash(s, 'a')).toBe(START_CASH + 4250)
-    expect(s.properties[35].mortgaged).toBe(true)
-    s = act(s, { type: 'unmortgage', tile: 35 }, 'a')
+    expect(s.properties[MUMBAI].mortgaged).toBe(true)
+    s = act(s, { type: 'unmortgage', tile: MUMBAI }, 'a')
     expect(cash(s, 'a')).toBe(START_CASH + 4250 - 4675)
-    expect(s.properties[35].mortgaged).toBe(false)
+    expect(s.properties[MUMBAI].mortgaged).toBe(false)
   })
 
   it('requires selling the buildings on that city first', () => {
     const s = arrange(game(), (d) => {
-      own(d, 'a', 32, 35)
-      d.properties[35].level = 1
+      own(d, 'a', CALCUTTA, MUMBAI)
+      d.properties[MUMBAI].level = 1
     })
-    expect(actError(s, { type: 'mortgage', tile: 35 }, 'a')).toMatch(/Sell the buildings/)
-    expect(act(s, { type: 'mortgage', tile: 32 }, 'a').properties[32].mortgaged).toBe(true)
+    expect(actError(s, { type: 'mortgage', tile: MUMBAI }, 'a')).toMatch(/Sell the buildings/)
+    expect(act(s, { type: 'mortgage', tile: CALCUTTA }, 'a').properties[CALCUTTA].mortgaged).toBe(true)
   })
 
   it("can't mortgage someone else's tile", () => {
-    const s = arrange(game(), (d) => own(d, 'b', 35))
-    expect(actError(s, { type: 'mortgage', tile: 35 }, 'a')).toMatch(/don't own/)
+    const s = arrange(game(), (d) => own(d, 'b', MUMBAI))
+    expect(actError(s, { type: 'mortgage', tile: MUMBAI }, 'a')).toMatch(/don't own/)
   })
 })
 
 describe('Club and Rest House', () => {
   it('Club: pay every other player', () => {
-    let s = arrange(game(4), (d) => place(d, 'a', 13))
+    let s = arrange(game(4), (d) => place(d, 'a', before(CLUB, 5)))
     s = roll(s, 'a', 5)
     expect(cash(s, 'a')).toBe(START_CASH - 300)
     expect(['b', 'c', 'd'].map((id) => cash(s, id))).toEqual([START_CASH + 100, START_CASH + 100, START_CASH + 100])
   })
 
   it('Club amount is configurable', () => {
-    let s = arrange(game(3, { clubAmount: 250 }), (d) => place(d, 'a', 13))
+    let s = arrange(game(3, { clubAmount: 250 }), (d) => place(d, 'a', before(CLUB, 5)))
     s = roll(s, 'a', 5)
     expect(cash(s, 'a')).toBe(START_CASH - 500)
   })
 
   it('Rest House (collect): collect from every other player', () => {
-    let s = arrange(game(3), (d) => place(d, 'a', 22))
+    let s = arrange(game(3), (d) => place(d, 'a', before(REST_HOUSE, 5)))
     s = roll(s, 'a', 5)
     expect(cash(s, 'a')).toBe(START_CASH + 200)
     expect(cash(s, 'b')).toBe(START_CASH - 100)
   })
 
   it('Rest House (skip turn): miss the next turn', () => {
-    let s = arrange(game(3, { restHouseMode: 'skipTurn' }), (d) => place(d, 'a', 22))
+    let s = arrange(game(3, { restHouseMode: 'skipTurn' }), (d) => place(d, 'a', before(REST_HOUSE, 5)))
     s = roll(s, 'a', 5)
     expect(cash(s, 'a')).toBe(START_CASH)
     expect(player(s, 'a').missNextTurn).toBe(true)
     s = act(s, { type: 'endTurn' }, 'a')
-    s = roll(s, 'b', 4)
+    s = roll(s, 'b', INCOME_TAX)
     s = act(s, { type: 'endTurn' }, 'b')
-    s = roll(s, 'c', 4)
+    s = roll(s, 'c', INCOME_TAX)
     s = act(s, { type: 'endTurn' }, 'c')
     expect(s.turn.playerId).toBe('b')
     expect(player(s, 'a').missNextTurn).toBe(false)
@@ -538,45 +595,45 @@ describe('Club and Rest House', () => {
 
 describe('taxes', () => {
   it('Income Tax', () => {
-    const s = roll(game(), 'a', 4)
+    const s = roll(game(), 'a', INCOME_TAX)
     expect(cash(s, 'a')).toBe(START_CASH - 1000)
   })
 
   it('Wealth Tax per building', () => {
     let s = arrange(game(), (d) => {
-      own(d, 'a', 1, 3, 6, 8)
-      d.properties[1].level = 2
-      d.properties[3].level = 4
-      d.properties[6].level = 1
-      place(d, 'a', 27)
+      own(d, 'a', AGRA, KANPUR, PATNA, INDORE)
+      d.properties[AGRA].level = 2
+      d.properties[KANPUR].level = 4
+      d.properties[INDORE].level = 1
+      place(d, 'a', before(WEALTH_TAX, 4))
     })
-    s = roll(s, 'a', 7)
+    s = roll(s, 'a', 4)
     expect(cash(s, 'a')).toBe(START_CASH - (3 * 500 + 1000))
   })
 
   it('Wealth Tax is zero without buildings', () => {
     let s = arrange(game(), (d) => {
-      own(d, 'a', 1)
-      place(d, 'a', 27)
+      own(d, 'a', AGRA)
+      place(d, 'a', before(WEALTH_TAX, 4))
     })
-    s = roll(s, 'a', 7)
+    s = roll(s, 'a', 4)
     expect(cash(s, 'a')).toBe(START_CASH)
   })
 
   it('Wealth Tax at 1% of property prices', () => {
     let s = arrange(game(3, { wealthTaxMode: 'percent' }), (d) => {
-      own(d, 'a', 35, 5)
-      place(d, 'a', 27)
+      own(d, 'a', MUMBAI, RAILWAY)
+      place(d, 'a', before(WEALTH_TAX, 4))
     })
-    s = roll(s, 'a', 7)
+    s = roll(s, 'a', 4)
     expect(cash(s, 'a')).toBe(START_CASH - Math.round((8500 + 9500) / 100))
   })
 })
 
-describe('Chance (decided by dice total, landing on tile 17)', () => {
+describe('Chance (decided by dice total, landing on tile 20)', () => {
   const at = (total: number, fn?: Parameters<typeof arrange>[1]) => {
     const s = arrange(game(3), (d) => {
-      place(d, 'a', 17 - total)
+      place(d, 'a', CHANCE - total)
       fn?.(d)
     })
     return roll(s, 'a', total)
@@ -591,51 +648,45 @@ describe('Chance (decided by dice total, landing on tile 17)', () => {
   it('3: go to jail', () => {
     const s = at(3)
     expect(player(s, 'a').inJail).toBe(true)
-    expect(player(s, 'a').position).toBe(9)
+    expect(player(s, 'a').position).toBe(JAIL_TILE)
   })
   it('4: pay 500', () => expect(cash(at(4), 'a')).toBe(START_CASH - 500))
   it('5: nearest transport, buy if unowned', () => {
     const s = at(5)
-    expect(player(s, 'a').position).toBe(21)
+    expect(player(s, 'a').position).toBe(AIR)
     expect(s.turn.phase).toBe('buy')
-    expect(s.turn.pendingTile).toBe(21)
+    expect(s.turn.pendingTile).toBe(AIR)
   })
   it('5: nearest transport, double rent if owned', () => {
-    const s = at(5, (d) => own(d, 'b', 21))
+    const s = at(5, (d) => own(d, 'b', AIR))
     expect(cash(s, 'a')).toBe(START_CASH - 2400)
     expect(cash(s, 'b')).toBe(START_CASH + 2400)
   })
-  it('5: from Chance on 33 wraps to Railway and pays salary', () => {
-    let s = arrange(game(3), (d) => place(d, 'a', 28))
-    s = act(s, { type: 'roll', dice: [2, 3] }, 'a')
-    expect(player(s, 'a').position).toBe(5)
-    expect(cash(s, 'a')).toBe(START_CASH + 1500)
+  it('5: from the other Chance goes on to the B.E.S.T. Bus', () => {
+    let s = arrange(game(3), (d) => place(d, 'a', 2))
+    s = act(s, { type: 'roll', dice: [2, 3] }, 'a') // Chance on 7
+    expect(player(s, 'a').position).toBe(BUS)
+    expect(cash(s, 'a')).toBe(START_CASH)
   })
   it('6: pay 1,000', () => expect(cash(at(6), 'a')).toBe(START_CASH - 1000))
   it('7: go back 3 spaces', () => {
     const s = at(7)
-    expect(player(s, 'a').position).toBe(14)
-    expect(s.turn.pendingTile).toBe(14)
-  })
-  it('7: going back from 26 lands on Community Chest and resolves it', () => {
-    let s = arrange(game(3), (d) => place(d, 'a', 19))
-    s = act(s, { type: 'roll', dice: [3, 4] }, 'a')
-    expect(player(s, 'a').position).toBe(23)
-    expect(cash(s, 'a')).toBe(START_CASH - 1000) // Chest 7: School fees
+    expect(player(s, 'a').position).toBe(CHANCE - 3)
+    expect(s.turn.pendingTile).toBe(CHANCE - 3)
   })
   it('8: repairs, 250 per house and 750 per hotel', () => {
     const s = at(8, (d) => {
-      own(d, 'a', 25, 35)
-      d.properties[25].level = 3
-      d.properties[35].level = 4
+      own(d, 'a', DELHI, MUMBAI)
+      d.properties[DELHI].level = 3
+      d.properties[MUMBAI].level = 4
     })
     expect(cash(s, 'a')).toBe(START_CASH - (3 * 250 + 750))
   })
-  it('9: trip to Delhi (no salary from 17)', () => {
+  it('9: trip to Delhi, collecting salary on the way past Start', () => {
     const s = at(9)
-    expect(player(s, 'a').position).toBe(25)
-    expect(cash(s, 'a')).toBe(START_CASH)
-    expect(s.turn.pendingTile).toBe(25)
+    expect(player(s, 'a').position).toBe(DELHI)
+    expect(cash(s, 'a')).toBe(START_CASH + 1500)
+    expect(s.turn.pendingTile).toBe(DELHI)
   })
   it('10: startup funded, collect 2,000', () => expect(cash(at(10), 'a')).toBe(START_CASH + 2000))
   it('11: get out of jail free pass', () => expect(player(at(11), 'a').jailPasses).toBe(1))
@@ -647,9 +698,9 @@ describe('Chance (decided by dice total, landing on tile 17)', () => {
   })
 })
 
-describe('Community Chest (decided by dice total, landing on tile 15)', () => {
+describe('Community Chest (decided by dice total, landing on tile 16)', () => {
   const at = (total: number) => {
-    const s = arrange(game(3), (d) => place(d, 'a', 15 - total))
+    const s = arrange(game(3), (d) => place(d, 'a', CHEST - total))
     return roll(s, 'a', total)
   }
   it('2: tax refund', () => expect(cash(at(2), 'a')).toBe(START_CASH + 1500))
@@ -678,11 +729,11 @@ describe('Community Chest (decided by dice total, landing on tile 15)', () => {
 })
 
 describe('auctions', () => {
-  const declined = () => act(roll(game(3, { auctions: true }), 'a', 8), { type: 'decline', now: NOW }, 'a')
+  const declined = () => act(roll(game(3, { auctions: true }), 'a', JAIPUR), { type: 'decline', now: NOW }, 'a')
 
   it('starts an auction when a tile is declined', () => {
     const s = declined()
-    expect(s.auction?.tile).toBe(8)
+    expect(s.auction?.tile).toBe(JAIPUR)
     expect(s.auction?.endsAt).toBe(NOW + 10_000)
     expect(waitingOn(s).sort()).toEqual(['a', 'b', 'c'])
   })
@@ -704,7 +755,7 @@ describe('auctions', () => {
     expect(actError(s, { type: 'bid', amount: 2000, now: NOW + 16_000 }, 'c')).toMatch(/ended/)
     s = act(s, { type: 'closeAuction', now: NOW + 15_000 }, 'c')
     expect(s.auction).toBeNull()
-    expect(s.properties[8].owner).toBe('b')
+    expect(s.properties[JAIPUR].owner).toBe('b')
     expect(cash(s, 'b')).toBe(START_CASH - 1000)
   })
 
@@ -715,14 +766,14 @@ describe('auctions', () => {
     expect(s.auction).not.toBeNull()
     s = act(s, { type: 'passAuction' }, 'b')
     expect(s.auction).toBeNull()
-    expect(s.properties[8].owner).toBe('c')
+    expect(s.properties[JAIPUR].owner).toBe('c')
     expect(cash(s, 'c')).toBe(START_CASH - 300)
   })
 
   it('stays with the bank when nobody bids', () => {
     let s = declined()
     s = act(s, { type: 'closeAuction', now: NOW + 10_000 }, 'b')
-    expect(s.properties[8].owner).toBeNull()
+    expect(s.properties[JAIPUR].owner).toBeNull()
   })
 
   it('blocks turn actions during an auction', () => {
@@ -732,7 +783,7 @@ describe('auctions', () => {
 
   it('excludes players who have not lapped (first-lap rule)', () => {
     let s = arrange(game(3, { firstLapRule: true, auctions: true }), (d) => (d.players[2].lapped = false))
-    s = act(roll(s, 'a', 8), { type: 'decline', now: NOW }, 'a')
+    s = act(roll(s, 'a', JAIPUR), { type: 'decline', now: NOW }, 'a')
     expect(actError(s, { type: 'bid', amount: 100, now: NOW }, 'c')).toMatch(/passed Start/)
   })
 })
@@ -740,8 +791,8 @@ describe('auctions', () => {
 describe('trades', () => {
   const base = () =>
     arrange(game(3), (d) => {
-      own(d, 'a', 1, 35)
-      own(d, 'b', 3)
+      own(d, 'a', AGRA, MUMBAI)
+      own(d, 'b', PATNA)
       d.players[1].jailPasses = 1
     })
 
@@ -749,14 +800,14 @@ describe('trades', () => {
     let s = base()
     s = act(
       s,
-      { type: 'proposeTrade', toId: 'b', give: { tiles: [35], cash: 500, passes: 0 }, get: { tiles: [3], cash: 0, passes: 1 } },
+      { type: 'proposeTrade', toId: 'b', give: { tiles: [MUMBAI], cash: 500, passes: 0 }, get: { tiles: [PATNA], cash: 0, passes: 1 } },
       'a',
     )
     expect(s.trades).toHaveLength(1)
     expect(actError(s, { type: 'respondTrade', tradeId: 1, accept: true }, 'c')).toMatch(/not offered to you/)
     s = act(s, { type: 'respondTrade', tradeId: 1, accept: true }, 'b')
-    expect(s.properties[35].owner).toBe('b')
-    expect(s.properties[3].owner).toBe('a')
+    expect(s.properties[MUMBAI].owner).toBe('b')
+    expect(s.properties[PATNA].owner).toBe('a')
     expect(cash(s, 'a')).toBe(START_CASH - 500)
     expect(cash(s, 'b')).toBe(START_CASH + 500)
     expect(player(s, 'a').jailPasses).toBe(1)
@@ -769,19 +820,19 @@ describe('trades', () => {
       d.players[1].inJail = true
       d.turn.playerId = 'c'
     })
-    s = act(s, { type: 'proposeTrade', toId: 'a', give: { tiles: [3], cash: 0, passes: 0 }, get: { tiles: [], cash: 3000, passes: 0 } }, 'b')
+    s = act(s, { type: 'proposeTrade', toId: 'a', give: { tiles: [PATNA], cash: 0, passes: 0 }, get: { tiles: [], cash: 3000, passes: 0 } }, 'b')
     s = act(s, { type: 'respondTrade', tradeId: 1, accept: true }, 'a')
-    expect(s.properties[3].owner).toBe('a')
+    expect(s.properties[PATNA].owner).toBe('a')
   })
 
   it('can be rejected, countered and withdrawn', () => {
     let s = base()
-    const offer: Action = { type: 'proposeTrade', toId: 'b', give: { tiles: [], cash: 1000, passes: 0 }, get: { tiles: [3], cash: 0, passes: 0 } }
+    const offer: Action = { type: 'proposeTrade', toId: 'b', give: { tiles: [], cash: 1000, passes: 0 }, get: { tiles: [PATNA], cash: 0, passes: 0 } }
     s = act(s, offer, 'a')
     s = act(s, { type: 'respondTrade', tradeId: 1, accept: false }, 'b')
     expect(s.trades).toHaveLength(0)
     s = act(s, offer, 'a')
-    s = act(s, { type: 'counterTrade', tradeId: 2, give: { tiles: [3], cash: 0, passes: 0 }, get: { tiles: [], cash: 2000, passes: 0 } }, 'b')
+    s = act(s, { type: 'counterTrade', tradeId: 2, give: { tiles: [PATNA], cash: 0, passes: 0 }, get: { tiles: [], cash: 2000, passes: 0 } }, 'b')
     expect(s.trades).toHaveLength(1)
     expect(s.trades[0]).toMatchObject({ id: 3, fromId: 'b', toId: 'a' })
     expect(actError(s, { type: 'cancelTrade', tradeId: 3 }, 'a')).toMatch(/Only the proposer/)
@@ -790,71 +841,72 @@ describe('trades', () => {
   })
 
   it('trades a built-on city on its own, buildings included', () => {
-    let s = arrange(base(), (d) => (d.properties[1].level = 2))
-    s = act(s, { type: 'proposeTrade', toId: 'b', give: { tiles: [1], cash: 0, passes: 0 }, get: { tiles: [], cash: 5000, passes: 0 } }, 'a')
+    let s = arrange(base(), (d) => (d.properties[AGRA].level = 2))
+    s = act(s, { type: 'proposeTrade', toId: 'b', give: { tiles: [AGRA], cash: 0, passes: 0 }, get: { tiles: [], cash: 5000, passes: 0 } }, 'a')
     s = act(s, { type: 'respondTrade', tradeId: 1, accept: true }, 'b')
-    expect(s.properties[1]).toMatchObject({ owner: 'b', level: 2 })
+    expect(s.properties[AGRA]).toMatchObject({ owner: 'b', level: 2 })
   })
 
   it('trades houses and hotels along with their cities', () => {
     let s = arrange(base(), (d) => {
-      own(d, 'a', 1, 3)
-      d.properties[1].level = 4
-      d.properties[3].level = 3
+      own(d, 'a', AGRA, PATNA)
+      d.properties[AGRA].level = 4
+      d.properties[PATNA].level = 3
     })
-    s = act(s, { type: 'proposeTrade', toId: 'b', give: { tiles: [1, 3], cash: 0, passes: 0 }, get: { tiles: [], cash: 9000, passes: 0 } }, 'a')
+    s = act(s, { type: 'proposeTrade', toId: 'b', give: { tiles: [AGRA, PATNA], cash: 0, passes: 0 }, get: { tiles: [], cash: 9000, passes: 0 } }, 'a')
     s = act(s, { type: 'respondTrade', tradeId: 1, accept: true }, 'b')
-    expect(s.properties[1]).toMatchObject({ owner: 'b', level: 4 })
-    expect(s.properties[3]).toMatchObject({ owner: 'b', level: 3 })
+    expect(s.properties[AGRA]).toMatchObject({ owner: 'b', level: 4 })
+    expect(s.properties[PATNA]).toMatchObject({ owner: 'b', level: 3 })
     expect(cash(s, 'a')).toBe(START_CASH + 9000)
     // The new owner collects the built rent straight away.
     s = arrange(s, (d) => {
       d.turn.playerId = 'c'
-      place(d, 'c', 0)
+      place(d, 'c', before(PATNA, 10))
     })
-    s = roll(s, 'c', 3) // Patna, 3 houses, and Sara now has 2 greens: 2,400 + 1,000
+    s = roll(s, 'c', 10) // Patna, 3 houses, and Sara now has 2 greens: 2,400 + 1,000
     expect(cash(s, 'b')).toBe(START_CASH - 9000 + 3400)
   })
 
   it("rejects trades of things you don't have", () => {
     const s = base()
     expect(
-      actError(s, { type: 'proposeTrade', toId: 'b', give: { tiles: [3], cash: 0, passes: 0 }, get: { tiles: [], cash: 0, passes: 0 } }, 'a'),
+      actError(s, { type: 'proposeTrade', toId: 'b', give: { tiles: [PATNA], cash: 0, passes: 0 }, get: { tiles: [], cash: 0, passes: 0 } }, 'a'),
     ).toMatch(/doesn't own/)
     expect(
-      actError(s, { type: 'proposeTrade', toId: 'b', give: { tiles: [], cash: 99_999, passes: 0 }, get: { tiles: [3], cash: 0, passes: 0 } }, 'a'),
+      actError(s, { type: 'proposeTrade', toId: 'b', give: { tiles: [], cash: 99_999, passes: 0 }, get: { tiles: [PATNA], cash: 0, passes: 0 } }, 'a'),
     ).toMatch(/doesn't have/)
   })
 
   it('re-validates on accept', () => {
     let s = base()
-    s = act(s, { type: 'proposeTrade', toId: 'b', give: { tiles: [], cash: 15_000, passes: 0 }, get: { tiles: [3], cash: 0, passes: 0 } }, 'a')
+    s = act(s, { type: 'proposeTrade', toId: 'b', give: { tiles: [], cash: 15_000, passes: 0 }, get: { tiles: [PATNA], cash: 0, passes: 0 } }, 'a')
     s = arrange(s, (d) => (d.players[0].cash = 10))
     expect(actError(s, { type: 'respondTrade', tradeId: 1, accept: true }, 'b')).toMatch(/doesn't have/)
   })
 
   it('keeps mortgaged tiles mortgaged after a trade', () => {
-    let s = arrange(base(), (d) => (d.properties[35].mortgaged = true))
-    s = act(s, { type: 'proposeTrade', toId: 'b', give: { tiles: [35], cash: 0, passes: 0 }, get: { tiles: [], cash: 1000, passes: 0 } }, 'a')
+    let s = arrange(base(), (d) => (d.properties[MUMBAI].mortgaged = true))
+    s = act(s, { type: 'proposeTrade', toId: 'b', give: { tiles: [MUMBAI], cash: 0, passes: 0 }, get: { tiles: [], cash: 1000, passes: 0 } }, 'a')
     s = act(s, { type: 'respondTrade', tradeId: 1, accept: true }, 'b')
-    expect(s.properties[35]).toMatchObject({ owner: 'b', mortgaged: true })
+    expect(s.properties[MUMBAI]).toMatchObject({ owner: 'b', mortgaged: true })
   })
 })
 
 describe('debt and bankruptcy', () => {
+  // Sara owns Delhi (pink) and Calcutta (blue), one house each; different colours, so no bonus.
   const broke = () =>
     arrange(game(3), (d) => {
-      own(d, 'b', 25, 35)
-      d.properties[25].level = 1
-      d.properties[35].level = 1
-      own(d, 'a', 8, 21)
+      own(d, 'b', DELHI, CALCUTTA)
+      d.properties[DELHI].level = 1
+      d.properties[CALCUTTA].level = 1
+      own(d, 'a', JAIPUR, AIR)
       d.players[0].cash = 1000
-      place(d, 'a', 28)
+      place(d, 'a', before(CALCUTTA, 7))
     })
 
   it('queues a debt when you cannot pay and blocks other actions', () => {
-    const s = roll(broke(), 'a', 7) // Mumbai with 1 house: 5,400
-    expect(s.debts).toEqual([{ debtorId: 'a', creditorId: 'b', amount: 5400, reason: 'rent for Mumbai' }])
+    const s = roll(broke(), 'a', 7) // Calcutta with 1 house: 4,950
+    expect(s.debts).toEqual([{ debtorId: 'a', creditorId: 'b', amount: 4950, reason: 'rent for Calcutta' }])
     expect(cash(s, 'a')).toBe(1000)
     expect(waitingOn(s)).toEqual(['a'])
     expect(actError(s, { type: 'endTurn' }, 'a')).toMatch(/debt/)
@@ -864,28 +916,28 @@ describe('debt and bankruptcy', () => {
 
   it('lets you raise funds and pay', () => {
     let s = roll(broke(), 'a', 7)
-    s = act(s, { type: 'mortgage', tile: 21 }, 'a') // +5,250
+    s = act(s, { type: 'mortgage', tile: AIR }, 'a') // +5,250
     s = act(s, { type: 'payDebt' }, 'a')
     expect(s.debts).toHaveLength(0)
-    expect(cash(s, 'a')).toBe(1000 + 5250 - 5400)
-    expect(cash(s, 'b')).toBe(START_CASH + 5400)
+    expect(cash(s, 'a')).toBe(1000 + 5250 - 4950)
+    expect(cash(s, 'b')).toBe(START_CASH + 4950)
     s = act(s, { type: 'endTurn' }, 'a')
     expect(s.turn.playerId).toBe('b')
   })
 
   it('bankruptcy to a player hands over everything', () => {
     let s = roll(
-      arrange(broke(), (d) => (d.properties[21].owner = null)),
+      arrange(broke(), (d) => (d.properties[AIR].owner = null)),
       'a',
       7,
     )
-    s = act(s, { type: 'mortgage', tile: 8 }, 'a') // +1,500 -> 2,500 < 5,400
+    s = act(s, { type: 'mortgage', tile: JAIPUR }, 'a') // +1,500 -> 2,500 < 4,950
     s = arrange(s, (d) => (d.players[0].jailPasses = 1))
     s = act(s, { type: 'declareBankruptcy', now: NOW }, 'a')
     expect(player(s, 'a').bankrupt).toBe(true)
     expect(cash(s, 'a')).toBe(0)
     expect(cash(s, 'b')).toBe(START_CASH + 2500)
-    expect(s.properties[8]).toMatchObject({ owner: 'b', mortgaged: true })
+    expect(s.properties[JAIPUR]).toMatchObject({ owner: 'b', mortgaged: true })
     expect(player(s, 'b').jailPasses).toBe(1)
     expect(s.turn.playerId).toBe('b')
     expect(s.status).toBe('playing')
@@ -893,27 +945,27 @@ describe('debt and bankruptcy', () => {
 
   it('bankruptcy to the bank auctions the properties', () => {
     let s = arrange(game(3, { auctions: true }), (d) => {
-      own(d, 'a', 1)
+      own(d, 'a', AGRA)
       d.players[0].cash = 100
       place(d, 'a', 0)
     })
-    s = roll(s, 'a', 4) // Income Tax 1,000
+    s = roll(s, 'a', INCOME_TAX) // Income Tax 1,000
     expect(s.debts[0]).toMatchObject({ creditorId: null, amount: 1000 })
     expect(actError(s, { type: 'declareBankruptcy', now: NOW }, 'a')).toMatch(/can still raise/)
     s = arrange(s, (d) => (d.debts[0].amount = 5000))
     s = act(s, { type: 'declareBankruptcy', now: NOW }, 'a')
     expect(player(s, 'a').bankrupt).toBe(true)
-    expect(s.properties[1].owner).toBeNull()
-    expect(s.auction?.tile).toBe(1)
+    expect(s.properties[AGRA].owner).toBeNull()
+    expect(s.auction?.tile).toBe(AGRA)
     expect(s.turn.playerId).toBe('b')
   })
 
   it('ends the game when one player is left', () => {
     let s = arrange(game(2), (d) => {
-      own(d, 'b', 35)
-      d.properties[35].level = 4
+      own(d, 'b', CALCUTTA)
+      d.properties[CALCUTTA].level = 4
       d.players[0].cash = 100
-      place(d, 'a', 28)
+      place(d, 'a', before(CALCUTTA, 7))
     })
     s = roll(s, 'a', 7)
     s = act(s, { type: 'declareBankruptcy', now: NOW }, 'a')
@@ -925,7 +977,7 @@ describe('debt and bankruptcy', () => {
   it('splits Club payments into debts per creditor when short', () => {
     let s = arrange(game(3), (d) => {
       d.players[0].cash = 150
-      place(d, 'a', 13)
+      place(d, 'a', before(CLUB, 5))
     })
     s = roll(s, 'a', 5)
     expect(cash(s, 'b')).toBe(START_CASH + 100)
@@ -935,13 +987,13 @@ describe('debt and bankruptcy', () => {
   it('makes other players settle Rest House debts', () => {
     let s = arrange(game(3), (d) => {
       d.players[1].cash = 50
-      own(d, 'b', 35)
-      place(d, 'a', 22)
+      own(d, 'b', CALCUTTA)
+      place(d, 'a', before(REST_HOUSE, 5))
     })
     s = roll(s, 'a', 5)
     expect(waitingOn(s)).toEqual(['b'])
     expect(actError(s, { type: 'endTurn' }, 'a')).toMatch(/Sara/)
-    s = act(s, { type: 'mortgage', tile: 35 }, 'b')
+    s = act(s, { type: 'mortgage', tile: CALCUTTA }, 'b')
     s = act(s, { type: 'payDebt' }, 'b')
     expect(cash(s, 'a')).toBe(START_CASH + 200)
     s = act(s, { type: 'endTurn' }, 'a')
@@ -952,20 +1004,19 @@ describe('debt and bankruptcy', () => {
 describe('time limit and net worth', () => {
   it('computes net worth with mortgaged tiles at half and buildings at cost', () => {
     const s = arrange(game(2), (d) => {
-      own(d, 'a', 25, 35, 5)
-      d.properties[25].level = 2
-      d.properties[5].mortgaged = true
+      own(d, 'a', DELHI, MUMBAI, RAILWAY)
+      d.properties[DELHI].level = 2
+      d.properties[RAILWAY].mortgaged = true
     })
     expect(netWorth(s, 'a')).toBe(START_CASH + 6000 + 8500 + 2 * 6000 + 4750)
   })
 
   it('ends by time with the richest player winning', () => {
     let s = initialState(players(3), { timeLimitMinutes: 10 }, { now: NOW })
-    s = arrange(s, (d) => own(d, 'c', 35))
+    s = arrange(s, (d) => own(d, 'c', MUMBAI))
     expect(actError(s, { type: 'endByTime', now: NOW + 60_000 }, 'a')).toMatch(/isn't up/)
     s = act(s, { type: 'endByTime', now: NOW + 600_000 }, 'a')
     expect(s.status).toBe('finished')
     expect(s.winnerId).toBe('c')
   })
 })
-

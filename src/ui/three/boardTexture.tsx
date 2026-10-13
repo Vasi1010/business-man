@@ -33,17 +33,6 @@ export function loadIcons(): Promise<Map<IconKind, HTMLImageElement>> {
 /** How much taller the far row's labels are drawn, to offset the camera's foreshortening. */
 const TOP_ROW_STRETCH = 1.25
 
-/** Where to break long one-word names on narrow squares. */
-const WORD_BREAKS: Record<string, string[]> = {
-  CHANDIGARH: ['CHANDI-', 'GARH'],
-  BANGALORE: ['BANGA-', 'LORE'],
-  DARJEELING: ['DARJEE-', 'LING'],
-  HYDERABAD: ['HYDERA-', 'BAD'],
-  AMRITSAR: ['AMRIT-', 'SAR'],
-  SRINAGAR: ['SRINA-', 'GAR'],
-  CALCUTTA: ['CAL-', 'CUTTA'],
-}
-
 /** Draw text at the largest size up to maxSize that fits maxWidth. */
 function fitText(g: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, maxSize: number, weight = 800) {
   g.font = `${weight} ${maxSize}px Mukta, "Arial Black", sans-serif`
@@ -283,18 +272,9 @@ export function drawBoard(s: GameState, icons: Map<IconKind, HTMLImageElement>, 
                 ? 'ON BUILDINGS'
                 : ''
         const icon = tile.kind === 'city' ? undefined : icons.get((tile.kind === 'service' ? tile.icon : tile.kind) as IconKind)
-        const wide = cw > ch
         const name = tile.name.toUpperCase()
-        const words = name.split(' ')
-        // Wide side squares fit names on one line; narrow ones split long names in two.
-        const lines = wide
-          ? [name]
-          : words.length > 1 && name.length > 9
-            ? [words.slice(0, Math.ceil(words.length / 2)).join(' '), words.slice(Math.ceil(words.length / 2)).join(' ')]
-            : side === 'top' && WORD_BREAKS[name]
-              ? WORD_BREAKS[name]
-              : [name]
-        // Stack: [icon] name, price, centred in the label area and shrunk to fit its height.
+        // Names always sit on one line, sized to fit the square.
+        const lines = [name]
         // The price keeps its size; the icon and name shrink to fit what's left.
         const priceH = price ? k * 0.32 : 0
         const priceBlock = price ? priceH + k * 0.06 : 0

@@ -20,19 +20,9 @@ import { PawnPiece, TileIcon } from './Art'
 import { Dice } from './Dice'
 import { Dice3D } from './Dice3D'
 
-/** Soft hyphens so long names break cleanly on small tiles. */
-const SOFT_NAMES: Record<string, string> = {
-  Chandigarh: 'Chandi­garh',
-  Darjeeling: 'Darjee­ling',
-  Hyderabad: 'Hydera­bad',
-  Ahmedabad: 'Ahmeda­bad',
-  Bangalore: 'Banga­lore',
-  Amritsar: 'Amrit­sar',
-  Srinagar: 'Srina­gar',
-  Calcutta: 'Cal­cutta',
-  Ludhiana: 'Ludhi­ana',
-  Lucknow: 'Luck­now',
-  Railway: 'Rail­way',
+/** Font size (cqw) that keeps a name on one line within the square's label width. */
+function nameSize(name: string, maxSize: number, widthCqw: number): number {
+  return Math.min(maxSize, widthCqw / (name.length * 0.66))
 }
 
 const bandLayout: Record<Exclude<Side, 'corner'>, { flex: string; band: string }> = {
@@ -145,8 +135,11 @@ const Tile = memo(function Tile({ index, prop, owner, highlight, salary, onClick
       ) : (
         <span className="flex min-w-0 flex-1 flex-col items-center justify-center gap-[0.3cqw] p-[0.35cqw] text-center">
           {!isCity && <TileIcon kind={isService ? tile.icon : (tile.kind as 'incomeTax')} className="h-[3cqw] w-[3cqw] text-[#9c140f]" />}
-          <span className={`w-full break-words font-extrabold uppercase leading-[1.05] [hyphens:manual] ${isCity ? 'text-[1.2cqw]' : 'text-[1.05cqw]'}`} lang="en">
-            {SOFT_NAMES[tile.name] ?? tile.name}
+          <span
+            className="w-full whitespace-nowrap font-extrabold uppercase leading-[1.05]"
+            style={{ fontSize: `${nameSize(tile.name, isCity ? 1.2 : 1.05, vertical ? 9.5 : 8)}cqw` }}
+          >
+            {tile.name}
           </span>
           {(isCity || isService) && (
             <span className="rounded-[0.3cqw] border-[0.1cqw] border-[#24180f]/50 bg-white px-[0.4cqw] text-[1.05cqw] font-bold leading-snug text-[#9c140f]">

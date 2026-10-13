@@ -71,42 +71,43 @@ const service = (
 const simple = (kind: SimpleTileKind, name: string): SimpleTile => ({ kind, name })
 
 export const BOARD: readonly Tile[] = [
+  // Laid out exactly like the classic printed board, 5 cities per colour.
   /* 0 */ simple('start', 'Start'),
-  /* 1 */ city('Agra', 1, 2500, [200, 900, 1600, 2400, 4400], 3000, 1250),
-  /* 2 */ simple('chest', 'Community Chest'),
-  /* 3 */ city('Patna', 1, 2600, [200, 900, 1600, 2400, 4400], 3000, 1300),
-  /* 4 */ simple('incomeTax', 'Income Tax'),
-  /* 5 */ service('Railway', 'train', 9500, 1100, 2200, 14, 4750, true),
-  /* 6 */ city('Kanpur', 1, 2800, [250, 1100, 2000, 3000, 5000], 3000, 1400),
+  /* 1 */ city('Mumbai', 4, 8500, [1200, 5400, 9600, 14400, 17400], 7000, 4250),
+  /* 2 */ service('Water Works', 'tap', 3200, 500, 1000, 12, 1600, false),
+  /* 3 */ service('Railway', 'train', 9500, 1100, 2200, 13, 4750, true),
+  /* 4 */ city('Ahmedabad', 4, 7500, [1100, 4950, 8800, 13200, 16200], 7000, 3750),
+  /* 5 */ simple('incomeTax', 'Income Tax'),
+  /* 6 */ city('Indore', 1, 2800, [250, 1100, 2000, 3000, 5000], 3000, 1400),
   /* 7 */ simple('chance', 'Chance'),
   /* 8 */ city('Jaipur', 1, 3000, [250, 1100, 2000, 3000, 5000], 3000, 1500),
   /* 9 */ simple('jail', 'Jail'),
-  /* 10 */ city('Simla', 2, 3500, [300, 1350, 2400, 3600, 5600], 4000, 1750),
-  /* 11 */ service('Electric Company', 'bulb', 2500, 500, 1000, 24, 1250, false),
-  /* 12 */ city('Amritsar', 2, 3600, [300, 1350, 2400, 3600, 5600], 4000, 1800),
-  /* 13 */ city('Srinagar', 2, 4000, [400, 1800, 3200, 4800, 6800], 4000, 2000),
-  /* 14 */ service('B.E.S.T. Bus', 'bus', 3500, 600, 1100, 5, 1750, true),
-  /* 15 */ simple('chest', 'Community Chest'),
-  /* 16 */ city('Madras', 2, 4200, [400, 1800, 3200, 4800, 6800], 4000, 2100),
-  /* 17 */ simple('chance', 'Chance'),
+  /* 10 */ city('Delhi', 3, 6000, [650, 2900, 5200, 7800, 10300], 6000, 3000),
+  /* 11 */ city('Chandigarh', 3, 5500, [600, 2700, 4800, 7200, 9700], 6000, 2750),
+  /* 12 */ service('Electric Company', 'bulb', 2500, 500, 1000, 2, 1250, false),
+  /* 13 */ service('B.E.S.T. Bus', 'bus', 3500, 600, 1100, 3, 1750, true),
+  /* 14 */ city('Simla', 2, 3500, [300, 1350, 2400, 3600, 5600], 4000, 1750),
+  /* 15 */ city('Amritsar', 2, 3600, [300, 1350, 2400, 3600, 5600], 4000, 1800),
+  /* 16 */ simple('chest', 'Community Chest'),
+  /* 17 */ city('Srinagar', 2, 4000, [400, 1800, 3200, 4800, 6800], 4000, 2000),
   /* 18 */ simple('club', 'Club'),
-  /* 19 */ city('Chandigarh', 3, 5000, [500, 2250, 4000, 6000, 8500], 6000, 2500),
-  /* 20 */ city('Goa', 3, 5200, [500, 2250, 4000, 6000, 8500], 6000, 2600),
-  /* 21 */ service('Air India', 'plane', 10500, 1200, 2400, 30, 5250, true),
-  /* 22 */ city('Bangalore', 3, 5500, [600, 2700, 4800, 7200, 9700], 6000, 2750),
-  /* 23 */ simple('chest', 'Community Chest'),
-  /* 24 */ service('Water Works', 'tap', 3200, 500, 1000, 11, 1600, false),
-  /* 25 */ city('Delhi', 3, 6000, [650, 2900, 5200, 7800, 10300], 6000, 3000),
-  /* 26 */ simple('chance', 'Chance'),
+  /* 19 */ city('Agra', 1, 2500, [200, 900, 1600, 2400, 4400], 3000, 1250),
+  /* 20 */ simple('chance', 'Chance'),
+  /* 21 */ city('Kanpur', 1, 2600, [200, 900, 1600, 2400, 4400], 3000, 1300),
+  /* 22 */ city('Patna', 1, 2600, [200, 900, 1600, 2400, 4400], 3000, 1300),
+  /* 23 */ city('Darjeeling', 4, 6500, [800, 3600, 6400, 9600, 12600], 7000, 3250),
+  /* 24 */ service('Air India', 'plane', 10500, 1200, 2400, 34, 5250, true),
+  /* 25 */ city('Calcutta', 4, 7500, [1100, 4950, 8800, 13200, 16200], 7000, 3750),
+  /* 26 */ city('Hyderabad', 4, 7000, [900, 4050, 7200, 10800, 13800], 7000, 3500),
   /* 27 */ simple('restHouse', 'Rest House'),
-  /* 28 */ city('Darjeeling', 4, 6500, [800, 3600, 6400, 9600, 12600], 7000, 3250),
-  /* 29 */ city('Hyderabad', 4, 7000, [900, 4050, 7200, 10800, 13800], 7000, 3500),
-  /* 30 */ service('Motor Boat', 'boat', 5500, 500, 900, 21, 2750, true),
-  /* 31 */ simple('chest', 'Community Chest'),
-  /* 32 */ city('Calcutta', 4, 7500, [1100, 4950, 8800, 13200, 16200], 7000, 3750),
-  /* 33 */ simple('chance', 'Chance'),
-  /* 34 */ simple('wealthTax', 'Wealth Tax'),
-  /* 35 */ city('Mumbai', 4, 8500, [1200, 5400, 9600, 14400, 17400], 7000, 4250),
+  /* 28 */ city('Madras', 2, 4200, [400, 1800, 3200, 4800, 6800], 4000, 2100),
+  /* 29 */ simple('chest', 'Community Chest'),
+  /* 30 */ city('Bangalore', 2, 4200, [400, 1800, 3200, 4800, 6800], 4000, 2100),
+  /* 31 */ simple('wealthTax', 'Wealth Tax'),
+  /* 32 */ city('Ootacamund', 3, 5000, [500, 2250, 4000, 6000, 8500], 6000, 2500),
+  /* 33 */ city('Cochin', 3, 5200, [500, 2250, 4000, 6000, 8500], 6000, 2600),
+  /* 34 */ service('Motor Boat', 'boat', 5500, 500, 900, 24, 2750, true),
+  /* 35 */ city('Goa', 3, 5200, [500, 2250, 4000, 6000, 8500], 6000, 2600),
 ]
 
 export const BOARD_SIZE = BOARD.length
@@ -114,7 +115,7 @@ export const BOARD_SIZE = BOARD.length
 export const SIDE_TILES = BOARD_SIZE / 4 - 1
 export const START_TILE = 0
 export const JAIL_TILE = 9
-export const DELHI_TILE = 25
+export const DELHI_TILE = 10
 
 /** Group display colours, from the classic printed board. */
 export const GROUP_COLORS: Record<CityGroup, { name: string; hex: string }> = {
@@ -126,7 +127,7 @@ export const GROUP_COLORS: Record<CityGroup, { name: string; hex: string }> = {
 
 /**
  * Extra rent for each other city of the same colour the owner holds:
- * +₹1,000 with 2 of a colour, +₹2,000 with 3, +₹3,000 with all 4.
+ * +₹1,000 with 2 of a colour, +₹2,000 with 3, and so on up to +₹4,000 with all 5.
  * Applies to site, house and hotel rent.
  */
 export const COLOUR_RENT_BONUS = 1000

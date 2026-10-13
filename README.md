@@ -115,7 +115,7 @@ Vite bakes env vars in at build time, so redeploy after changing them.
 Everything lives in **`src/engine/data/board.ts`**:
 
 - `BOARD`: the 36 tiles in order (8 per side, like the printed board), with city prices, rents `[site, 1 house, 2, 3, hotel]`, house/hotel cost, mortgage values, and paired-service rents.
-- `GROUP_COLORS`: the four colour sets (green, lavender, pink, blue; 4 cities each).
+- `GROUP_COLORS`: the four colour sets (green, lavender, pink, blue; 5 cities each), laid out exactly as on the printed board.
 - `COLOUR_RENT_BONUS`: extra rent for each other same-colour city the owner holds.
 - `CHANCE` / `CHEST`: what each dice total (2–12) does.
 - `SPECIAL_DEFAULTS`: default starting cash, Start salary, taxes, Club, Rest House and jail fine. All of these can also be changed per game in the lobby.
@@ -133,7 +133,7 @@ The rules follow the brief. Where it left room for interpretation:
 - **Building:** you can build on any city you own (up to 3 houses, then a hotel) as long as you pay the house cost. You don't need the rest of its colour, and there's no even-building rule. With the **One house per city** house rule (off by default, set in the lobby), each city takes one house and then a hotel, which costs three houses.
 - **Mortgages:** sell a city's buildings before mortgaging it. Traded mortgaged tiles stay mortgaged.
 - **Trading buildings:** cities can be traded with their houses and hotels on them.
-- **Colour bonus:** rent on a city (site, houses or hotel) goes up by ₹1,000 for each other city of that colour the owner holds (+₹1,000 with 2, +₹2,000 with 3, +₹3,000 with all 4). A hotel costs ₹2,000–3,000 more rent than three houses. Services keep their pair rule.
+- **Colour bonus:** rent on a city (site, houses or hotel) goes up by ₹1,000 for each other city of that colour the owner holds (+₹1,000 with 2, +₹2,000 with 3, up to +₹4,000 with all 5). A hotel costs ₹2,000–3,000 more rent than three houses. Services keep their pair rule.
 - **Jail:** doubles on your jail roll free you and move you, but don't give an extra roll.
 - **Auctions** (off by default, so you simply buy or leave a property; switch them on in the lobby): start with a 10-second countdown that resets on each bid; they also end once everyone else drops out.
 

@@ -7,6 +7,7 @@ import {
   CHEST,
   COLOUR_RENT_BONUS,
   GROUP_COLORS,
+  groupTiles,
   HOTEL_LEVEL,
   formatMoney,
   isLegal,
@@ -111,8 +112,8 @@ export function PropertyCard({ tile, onClose }: { tile: number | null; onClose: 
           </table>
           {t.kind === 'city' && (
             <p className="mt-2 text-xs text-muted">
-              Own more {GROUP_COLORS[t.group].name.toLowerCase()} cities and every rent here goes up: +{formatMoney(COLOUR_RENT_BONUS)} with 2, +
-              {formatMoney(COLOUR_RENT_BONUS * 2)} with 3, +{formatMoney(COLOUR_RENT_BONUS * 3)} with all 4.
+              Own more {GROUP_COLORS[t.group].name.toLowerCase()} cities and every rent here goes up {formatMoney(COLOUR_RENT_BONUS)} for each
+              one (+{formatMoney(COLOUR_RENT_BONUS * (groupTiles(t.group).length - 1))} with all {groupTiles(t.group).length}).
             </p>
           )}
           <div className="mt-3 rounded-xl bg-paper-2 p-3 text-sm">
