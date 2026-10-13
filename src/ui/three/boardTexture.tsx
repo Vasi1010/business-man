@@ -31,7 +31,7 @@ export function loadIcons(): Promise<Map<IconKind, HTMLImageElement>> {
 }
 
 /** How much taller the far row's labels are drawn, to offset the camera's foreshortening. */
-const TOP_ROW_STRETCH = 1.4
+const TOP_ROW_STRETCH = 1.25
 
 /** Where to break long one-word names on narrow squares. */
 const WORD_BREAKS: Record<string, string[]> = {
@@ -295,15 +295,16 @@ export function drawBoard(s: GameState, icons: Map<IconKind, HTMLImageElement>, 
               ? WORD_BREAKS[name]
               : [name]
         // Stack: [icon] name, price, centred in the label area and shrunk to fit its height.
+        // The price keeps its size; the icon and name shrink to fit what's left.
+        const priceH = price ? k * 0.32 : 0
+        const priceBlock = price ? priceH + k * 0.06 : 0
         let iconSize = k * 0.4
         let nameSize = k * (side === 'top' ? 0.3 : 0.24)
-        let priceH = k * 0.27
-        const stackH = () => (icon ? iconSize + k * 0.04 : 0) + lines.length * nameSize * 1.02 + (price ? priceH + k * 0.06 : 0)
-        const fit = Math.min(1, (chFit * 0.9) / stackH())
+        const restH = () => (icon ? iconSize + k * 0.04 : 0) + lines.length * nameSize * 1.02
+        const fit = Math.min(1, (chFit * 0.92 - priceBlock) / restH())
         iconSize *= fit
         nameSize *= fit
-        priceH *= fit
-        const blockH = stackH()
+        const blockH = restH() + priceBlock
         let top = cy - blockH / 2
         if (icon) {
           g.drawImage(icon, cx - iconSize / 2, top, iconSize, iconSize)
@@ -320,11 +321,11 @@ export function drawBoard(s: GameState, icons: Map<IconKind, HTMLImageElement>, 
           g.strokeStyle = 'rgba(36,24,15,.55)'
           g.lineWidth = k * 0.012
           g.beginPath()
-          g.roundRect(cx - cw * 0.44, top, cw * 0.88, priceH, k * 0.05)
+          g.roundRect(cx - cw * 0.46, top, cw * 0.92, priceH, k * 0.05)
           g.fill()
           g.stroke()
           g.fillStyle = PRINT.redDark
-          fitText(g, price, cx, top + priceH / 2 + k * 0.01, cw * 0.82, priceH * 0.74, 700)
+          fitText(g, price, cx, top + priceH / 2 + k * 0.01, cw * 0.86, priceH * 0.78, 800)
         }
       }
       g.restore()
