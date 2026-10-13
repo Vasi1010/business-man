@@ -1,8 +1,9 @@
 import {
   BOARD,
+  applyAction,
   CHANCE,
   CHEST,
-  COLOUR_RENT_MULTIPLIER,
+  COLOUR_RENT_BONUS,
   GROUP_COLORS,
   HOTEL_LEVEL,
   formatMoney,
@@ -29,12 +30,27 @@ export function PropertyCard({ tile, onClose }: { tile: number | null; onClose: 
   const actor = perspectiveId(s, c.meId)
 
   const manage: { label: string; action: Action; variant?: 'primary' | 'secondary' | 'danger' }[] = [
-    { label: 'Build', action: { type: 'build', tile }, variant: 'primary' },
+    {
+      label:
+        t.kind === 'city' && prop
+          ? prop.level === HOTEL_LEVEL - 1
+            ? `Build hotel (${formatMoney(t.houseCost)})`
+            : `Build house ${prop.level + 1} of 3 (${formatMoney(t.houseCost)})`
+          : 'Build',
+      action: { type: 'build', tile },
+      variant: 'primary',
+    },
     { label: 'Sell building', action: { type: 'sellBuilding', tile } },
     { label: 'Mortgage', action: { type: 'mortgage', tile } },
     { label: `Unmortgage (${formatMoney(prop ? unmortgageCost(tile) : 0)})`, action: { type: 'unmortgage', tile } },
   ]
   const legal = owner && owner.id === actor ? manage.filter((m) => isLegal(s, m.action, actor)) : []
+  // Say why you can't build here yet, so players know how to get houses and the hotel.
+  const buildBlocked =
+    owner && owner.id === actor && t.kind === 'city' && prop.level < HOTEL_LEVEL && !legal.some((m) => m.action.type === 'build')
+      ? applyAction(s, { type: 'build', tile }, actor)
+      : null
+  const buildHint = buildBlocked && 'error' in buildBlocked ? buildBlocked.error : null
 
   const header =
     t.kind === 'city' ? (
@@ -87,14 +103,8 @@ export function PropertyCard({ tile, onClose }: { tile: number | null; onClose: 
           </table>
           {t.kind === 'city' && (
             <p className="mt-2 text-xs text-muted">
-              Own more {GROUP_COLORS[t.group].name.toLowerCase()} cities and site and house rent goes up (hotels stay fixed): ×{COLOUR_RENT_MULTIPLIER[2]} with 2, ×
-              {COLOUR_RENT_MULTIPLIER[3]} with 3, ×{COLOUR_RENT_MULTIPLIER[4]} with all 4.
-              {prop.owner !== null && !prop.mortgaged && (
-                <>
-                  {' '}
-                  Rent here now: <strong className="text-ink">{formatMoney(rentFor(s, tile))}</strong>.
-                </>
-              )}
+              Own more {GROUP_COLORS[t.group].name.toLowerCase()} cities and site and house rent goes up: +{formatMoney(COLOUR_RENT_BONUS)} with 2, +
+              {formatMoney(COLOUR_RENT_BONUS * 2)} with 3, +{formatMoney(COLOUR_RENT_BONUS * 3)} with all 4. Hotel rent stays fixed.
             </p>
           )}
           <div className="mt-3 rounded-xl bg-paper-2 p-3 text-sm">
@@ -116,6 +126,12 @@ export function PropertyCard({ tile, onClose }: { tile: number | null; onClose: 
               </div>
             )}
           </div>
+          {t.kind === 'city' && owner && owner.id === actor && (
+            <p className="mt-3 text-xs text-muted">
+              Build up to 3 houses, then a hotel ({formatMoney(t.houseCost)} each), on your turn. You don't need the other {GROUP_COLORS[t.group].name.toLowerCase()} cities.
+              {buildHint && <strong className="block text-bad">Can't build right now: {buildHint}.</strong>}
+            </p>
+          )}
           {legal.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
               {legal.map((m) => (

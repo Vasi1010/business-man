@@ -1,6 +1,6 @@
 import {
   BOARD,
-  COLOUR_RENT_MULTIPLIER,
+  COLOUR_RENT_BONUS,
   HOTEL_LEVEL,
   OWNABLE_TILES,
   SPECIAL_DEFAULTS,
@@ -64,9 +64,9 @@ export function rentFor(s: GameState, tileIndex: number): number {
   if (!prop || prop.owner === null || prop.mortgaged) return 0
   const t = ownableTile(tileIndex)
   if (t.kind === 'city') {
-    // Hotels charge their fixed rent; the colour bonus only lifts site and house rent.
+    // Hotels charge their fixed rent; the colour bonus only adds to site and house rent.
     if (prop.level === HOTEL_LEVEL) return t.rents[HOTEL_LEVEL]
-    return Math.round(t.rents[prop.level] * COLOUR_RENT_MULTIPLIER[colourCount(s, tileIndex, prop.owner)])
+    return t.rents[prop.level] + (colourCount(s, tileIndex, prop.owner) - 1) * COLOUR_RENT_BONUS
   }
   return s.properties[t.pair]?.owner === prop.owner ? t.pairRent : t.rent
 }

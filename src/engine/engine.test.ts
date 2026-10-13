@@ -175,9 +175,9 @@ describe('rent', () => {
       return START_CASH - cash(roll(s, 'a', 8), 'a')
     }
     expect(landOnMumbai()).toBe(1200)
-    expect(landOnMumbai(32)).toBe(1800) // ×1.5
-    expect(landOnMumbai(29, 32)).toBe(2400) // ×2
-    expect(landOnMumbai(28, 29, 32)).toBe(3600) // ×3
+    expect(landOnMumbai(32)).toBe(2200) // +1,000
+    expect(landOnMumbai(29, 32)).toBe(3200) // +2,000
+    expect(landOnMumbai(28, 29, 32)).toBe(4200) // +3,000
   })
 
   it('ignores cities of other colours', () => {
@@ -191,7 +191,7 @@ describe('rent', () => {
       place(d, 'a', 28)
       d.players[0].cash = 50_000
     })
-    const expected = [5400, 9600, 14400, 17400]
+    const expected = [5400, 9600, 14400, 20400]
     for (let level = 1; level <= 4; level++) {
       const s = roll(
         arrange(base, (d) => (d.properties[35].level = level)),
@@ -208,8 +208,8 @@ describe('rent', () => {
       d.properties[35].level = 4
       d.properties[32].level = 1
     })
-    expect(rentFor(s, 35)).toBe(17400)
-    expect(rentFor(s, 32)).toBe(4950 * 3)
+    expect(rentFor(s, 35)).toBe(20400)
+    expect(rentFor(s, 32)).toBe(4950 + 3000)
   })
 
   it('charges no rent on mortgaged tiles', () => {
@@ -790,8 +790,8 @@ describe('trades', () => {
       d.turn.playerId = 'c'
       place(d, 'c', 0)
     })
-    s = roll(s, 'c', 3) // Patna, 3 houses, and Sara now has 2 greens: 2,400 × 1.5
-    expect(cash(s, 'b')).toBe(START_CASH - 9000 + 3600)
+    s = roll(s, 'c', 3) // Patna, 3 houses, and Sara now has 2 greens: 2,400 + 1,000
+    expect(cash(s, 'b')).toBe(START_CASH - 9000 + 3400)
   })
 
   it("rejects trades of things you don't have", () => {

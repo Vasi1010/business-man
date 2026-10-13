@@ -72,41 +72,41 @@ const simple = (kind: SimpleTileKind, name: string): SimpleTile => ({ kind, name
 
 export const BOARD: readonly Tile[] = [
   /* 0 */ simple('start', 'Start'),
-  /* 1 */ city('Agra', 1, 2500, [200, 900, 1600, 2400, 4400], 3000, 1250),
+  /* 1 */ city('Agra', 1, 2500, [200, 900, 1600, 2400, 7400], 3000, 1250),
   /* 2 */ simple('chest', 'Community Chest'),
-  /* 3 */ city('Patna', 1, 2600, [200, 900, 1600, 2400, 4400], 3000, 1300),
+  /* 3 */ city('Patna', 1, 2600, [200, 900, 1600, 2400, 7400], 3000, 1300),
   /* 4 */ simple('incomeTax', 'Income Tax'),
   /* 5 */ service('Railway', 'train', 9500, 1100, 2200, 14, 4750, true),
-  /* 6 */ city('Kanpur', 1, 2800, [250, 1100, 2000, 3000, 5000], 3000, 1400),
+  /* 6 */ city('Kanpur', 1, 2800, [250, 1100, 2000, 3000, 8000], 3000, 1400),
   /* 7 */ simple('chance', 'Chance'),
-  /* 8 */ city('Jaipur', 1, 3000, [250, 1100, 2000, 3000, 5000], 3000, 1500),
+  /* 8 */ city('Jaipur', 1, 3000, [250, 1100, 2000, 3000, 8000], 3000, 1500),
   /* 9 */ simple('jail', 'Jail'),
-  /* 10 */ city('Simla', 2, 3500, [300, 1350, 2400, 3600, 5600], 4000, 1750),
+  /* 10 */ city('Simla', 2, 3500, [300, 1350, 2400, 3600, 8600], 4000, 1750),
   /* 11 */ service('Electric Company', 'bulb', 2500, 500, 1000, 24, 1250, false),
-  /* 12 */ city('Amritsar', 2, 3600, [300, 1350, 2400, 3600, 5600], 4000, 1800),
-  /* 13 */ city('Srinagar', 2, 4000, [400, 1800, 3200, 4800, 6800], 4000, 2000),
+  /* 12 */ city('Amritsar', 2, 3600, [300, 1350, 2400, 3600, 8600], 4000, 1800),
+  /* 13 */ city('Srinagar', 2, 4000, [400, 1800, 3200, 4800, 9800], 4000, 2000),
   /* 14 */ service('B.E.S.T. Bus', 'bus', 3500, 600, 1100, 5, 1750, true),
   /* 15 */ simple('chest', 'Community Chest'),
-  /* 16 */ city('Madras', 2, 4200, [400, 1800, 3200, 4800, 6800], 4000, 2100),
+  /* 16 */ city('Madras', 2, 4200, [400, 1800, 3200, 4800, 9800], 4000, 2100),
   /* 17 */ simple('chance', 'Chance'),
   /* 18 */ simple('club', 'Club'),
-  /* 19 */ city('Chandigarh', 3, 5000, [500, 2250, 4000, 6000, 8500], 6000, 2500),
-  /* 20 */ city('Goa', 3, 5200, [500, 2250, 4000, 6000, 8500], 6000, 2600),
+  /* 19 */ city('Chandigarh', 3, 5000, [500, 2250, 4000, 6000, 11500], 6000, 2500),
+  /* 20 */ city('Goa', 3, 5200, [500, 2250, 4000, 6000, 11500], 6000, 2600),
   /* 21 */ service('Air India', 'plane', 10500, 1200, 2400, 30, 5250, true),
-  /* 22 */ city('Bangalore', 3, 5500, [600, 2700, 4800, 7200, 9700], 6000, 2750),
+  /* 22 */ city('Bangalore', 3, 5500, [600, 2700, 4800, 7200, 12700], 6000, 2750),
   /* 23 */ simple('chest', 'Community Chest'),
   /* 24 */ service('Water Works', 'tap', 3200, 500, 1000, 11, 1600, false),
-  /* 25 */ city('Delhi', 3, 6000, [650, 2900, 5200, 7800, 10300], 6000, 3000),
+  /* 25 */ city('Delhi', 3, 6000, [650, 2900, 5200, 7800, 13300], 6000, 3000),
   /* 26 */ simple('chance', 'Chance'),
   /* 27 */ simple('restHouse', 'Rest House'),
-  /* 28 */ city('Darjeeling', 4, 6500, [800, 3600, 6400, 9600, 12600], 7000, 3250),
-  /* 29 */ city('Hyderabad', 4, 7000, [900, 4050, 7200, 10800, 13800], 7000, 3500),
+  /* 28 */ city('Darjeeling', 4, 6500, [800, 3600, 6400, 9600, 15600], 7000, 3250),
+  /* 29 */ city('Hyderabad', 4, 7000, [900, 4050, 7200, 10800, 16800], 7000, 3500),
   /* 30 */ service('Motor Boat', 'boat', 5500, 500, 900, 21, 2750, true),
   /* 31 */ simple('chest', 'Community Chest'),
-  /* 32 */ city('Calcutta', 4, 7500, [1100, 4950, 8800, 13200, 16200], 7000, 3750),
+  /* 32 */ city('Calcutta', 4, 7500, [1100, 4950, 8800, 13200, 19200], 7000, 3750),
   /* 33 */ simple('chance', 'Chance'),
   /* 34 */ simple('wealthTax', 'Wealth Tax'),
-  /* 35 */ city('Mumbai', 4, 8500, [1200, 5400, 9600, 14400, 17400], 7000, 4250),
+  /* 35 */ city('Mumbai', 4, 8500, [1200, 5400, 9600, 14400, 20400], 7000, 4250),
 ]
 
 export const BOARD_SIZE = BOARD.length
@@ -125,11 +125,11 @@ export const GROUP_COLORS: Record<CityGroup, { name: string; hex: string }> = {
 }
 
 /**
- * Rent multiplier by how many cities of that colour the owner holds (index = count).
- * You don't need the whole colour to build; owning more of it raises site and house rent.
- * Hotel rent is fixed and doesn't get the bonus.
+ * Extra rent for each other city of the same colour the owner holds:
+ * +₹1,000 with 2 of a colour, +₹2,000 with 3, +₹3,000 with all 4.
+ * Applies to site and house rent. Hotel rent is fixed and gets no bonus.
  */
-export const COLOUR_RENT_MULTIPLIER = [1, 1, 1.5, 2, 3] as const
+export const COLOUR_RENT_BONUS = 1000
 
 /** Default amounts for special tiles. All of these can be overridden in lobby settings. */
 export const SPECIAL_DEFAULTS = {
