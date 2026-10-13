@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import type { ServiceTile, SimpleTileKind, TokenId } from '../../engine'
 
 /** Original token glyphs, drawn on a 32×32 grid using currentColor. */
@@ -226,5 +227,47 @@ export function Logo({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
       <LogoMark size={mark} />
       <span className={`font-display ${text} leading-none text-brand`}>Business-Man</span>
     </span>
+  )
+}
+
+/** Mix a #rrggbb colour towards white (amount > 0) or black (amount < 0). */
+function shade(hex: string, amount: number): string {
+  const n = parseInt(hex.slice(1), 16)
+  const to = amount > 0 ? 255 : 0
+  const a = Math.abs(amount)
+  const ch = (shift: number) => Math.round(((n >> shift) & 255) * (1 - a) + to * a)
+  return `rgb(${ch(16)},${ch(8)},${ch(0)})`
+}
+
+/** A lacquered board-game pawn, shaded to look three-dimensional. Its foot sits at the bottom centre. */
+export function PawnPiece({ color, title, className }: { color: string; title?: string; className?: string }) {
+  const id = useId().replace(/:/g, '')
+  return (
+    <svg viewBox="0 0 40 56" className={className} role={title ? 'img' : undefined} aria-label={title} aria-hidden={title ? undefined : true}>
+      <defs>
+        <linearGradient id={`${id}b`} x1="0" x2="1">
+          <stop offset="0" stopColor={shade(color, -0.45)} />
+          <stop offset=".35" stopColor={shade(color, 0.25)} />
+          <stop offset=".6" stopColor={color} />
+          <stop offset="1" stopColor={shade(color, -0.55)} />
+        </linearGradient>
+        <radialGradient id={`${id}h`} cx=".38" cy=".32" r=".7">
+          <stop offset="0" stopColor={shade(color, 0.70)} />
+          <stop offset=".45" stopColor={color} />
+          <stop offset="1" stopColor={shade(color, -0.55)} />
+        </radialGradient>
+      </defs>
+      <ellipse cx="20" cy="52.5" rx="15" ry="3.2" fill="rgba(0,0,0,.35)" />
+      {/* base */}
+      <path d="M5.5 50c0-3 2-5 5-6h19c3 1 5 3 5 6 0 1.6-6.5 2.6-14.5 2.6S5.5 51.6 5.5 50z" fill={`url(#${id}b)`} />
+      {/* body */}
+      <path d="M12 44.5c2.5-3.5 4.5-10 5-17.5h6c.5 7.5 2.5 14 5 17.5z" fill={`url(#${id}b)`} />
+      {/* collar */}
+      <ellipse cx="20" cy="26.5" rx="7.5" ry="2.4" fill={`url(#${id}b)`} />
+      {/* head */}
+      <circle cx="20" cy="16" r="9" fill={`url(#${id}h)`} />
+      <ellipse cx="16.8" cy="12.4" rx="2.6" ry="1.8" fill="#fff" opacity=".55" />
+      <path d="M8 49.3c3 1.2 7.5 1.8 12 1.8s9-.6 12-1.8" stroke="rgba(255,255,255,.35)" strokeWidth=".8" fill="none" />
+    </svg>
   )
 }

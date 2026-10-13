@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react'
-import { formatMoney, type GameState, type PlayerId } from '../../engine'
+import { type GameState, type PlayerId } from '../../engine'
+import { moneyBurst } from '../../store/moneyFx'
 import { toast } from '../../store/toasts'
 import { sfx } from '../sound'
 import { arrivalDelay } from './useAnimatedPositions'
 
-/** Sounds and toasts for whatever the latest action did (works for remote updates too). */
+/** Sounds, toasts and money animations for whatever the latest action did (works for remote updates too). */
 export function useGameFeedback(state: GameState, meId: PlayerId | null) {
   const lastSeq = useRef(state.seq)
   const lastTurn = useRef(state.turn.playerId)
@@ -42,12 +43,12 @@ export function useGameFeedback(state: GameState, meId: PlayerId | null) {
             if (e.amount > 0) gained = true
             else lost = true
           }
-          if (moneyToasts < 3) {
+          if (moneyToasts < 4) {
             moneyToasts++
-            const who = meId !== null && e.playerId === meId ? 'You' : name(e.playerId)
-            const text = `${who} ${e.amount > 0 ? '+' : '−'}${formatMoney(Math.abs(e.amount))} · ${e.reason}`
-            const tone = mine ? (e.amount > 0 ? 'gain' : 'loss') : 'info'
-            later(() => toast(text, tone))
+            const player = state.players.find((p) => p.id === e.playerId)
+            const who = meId !== null && e.playerId === meId ? 'You' : (player?.name ?? '?')
+            const burst = { amount: e.amount, who, reason: e.reason, color: player?.color ?? '#888888' }
+            later(() => moneyBurst(burst))
           }
           break
         }

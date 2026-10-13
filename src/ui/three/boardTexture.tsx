@@ -2,25 +2,12 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { BOARD, GROUP_COLORS, groupIndian, type GameState, type ServiceTile, type SimpleTileKind } from '../../engine'
 import { CORNER, placement } from '../boardLayout'
 import { TileIcon } from '../components/Art'
+import { CORNER_STYLE, PRINT, RAINBOW, tint } from '../printStyle'
 
 export const TOTAL = CORNER * 2 + 9
 
 type IconKind = ServiceTile['icon'] | SimpleTileKind
 const ICONS: IconKind[] = ['train', 'bus', 'plane', 'boat', 'bulb', 'tap', 'chance', 'chest', 'incomeTax', 'wealthTax', 'club', 'restHouse', 'jail', 'start']
-const ICON_COLOR: Partial<Record<IconKind, string>> = { chance: '#c2417a', chest: '#0b7a75' }
-
-const PAPER = '#f4e8cc'
-const INK = '#2a1c12'
-const MUTED = '#6b5442'
-const BRAND = '#9b2d1f'
-const GOLD = '#c99a2e'
-
-const CORNER_STYLE: Partial<Record<SimpleTileKind, { bg: string; label: string; sub: string }>> = {
-  start: { bg: '#f5d38c', label: 'START', sub: 'Collect salary' },
-  jail: { bg: '#e6c9bd', label: 'JAIL', sub: 'Just visiting' },
-  club: { bg: '#cfe2c0', label: 'CLUB', sub: 'Pay everyone' },
-  restHouse: { bg: '#c9dfe9', label: 'REST HOUSE', sub: 'Put your feet up' },
-}
 
 let iconCache: Promise<Map<IconKind, HTMLImageElement>> | null = null
 
@@ -32,7 +19,7 @@ export function loadIcons(): Promise<Map<IconKind, HTMLImageElement>> {
         new Promise<[IconKind, HTMLImageElement]>((resolve) => {
           const svg = renderToStaticMarkup(<TileIcon kind={kind} />)
             .replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"')
-            .replaceAll('currentColor', ICON_COLOR[kind] ?? BRAND)
+            .replaceAll('currentColor', kind === 'jail' || kind === 'start' ? PRINT.red : PRINT.redDark)
           const img = new Image()
           img.onload = () => resolve([kind, img])
           img.onerror = () => resolve([kind, img])
@@ -49,75 +36,137 @@ function span(n: number): [number, number] {
   return [CORNER + (n - 2), CORNER + (n - 1)]
 }
 
-/** Deterministic pseudo-random for paper grain. */
-function grain(g: CanvasRenderingContext2D, size: number, alpha: number) {
-  let seed = 7
-  const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
-  g.save()
-  for (let i = 0; i < size * 6; i++) {
-    g.fillStyle = `rgba(90,60,30,${rand() * alpha})`
-    g.fillRect(rand() * size, rand() * size, 1 + rand() * 2, 1 + rand() * 2)
-  }
-  g.restore()
-}
-
-function rangoli(g: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
-  const colors = Object.values(GROUP_COLORS).map((c) => c.hex)
-  g.save()
-  g.translate(cx, cy)
-  g.globalAlpha = 0.16
-  for (let ring = 0; ring < 3; ring++) {
-    const petals = 8 + ring * 8
-    const rr = r * (1 - ring * 0.27)
-    for (let i = 0; i < petals; i++) {
-      g.save()
-      g.rotate((i / petals) * Math.PI * 2 + ring * 0.2)
-      g.fillStyle = colors[(i + ring * 3) % colors.length]
-      g.beginPath()
-      g.moveTo(0, rr * 0.35)
-      g.quadraticCurveTo(rr * 0.16, rr * 0.7, 0, rr)
-      g.quadraticCurveTo(-rr * 0.16, rr * 0.7, 0, rr * 0.35)
-      g.fill()
-      g.restore()
-    }
-  }
-  g.globalAlpha = 0.5
-  g.strokeStyle = GOLD
-  g.lineWidth = r * 0.012
-  for (const k of [0.32, 1.04]) {
+function pinwheel(g: CanvasRenderingContext2D, cx: number, cy: number, r: number, turn = 0) {
+  const n = RAINBOW.length * 2
+  for (let i = 0; i < n; i++) {
+    g.fillStyle = RAINBOW[i % RAINBOW.length]
     g.beginPath()
-    g.arc(0, 0, r * k, 0, Math.PI * 2)
-    g.stroke()
+    g.moveTo(cx, cy)
+    g.arc(cx, cy, r, turn + (i / n) * Math.PI * 2, turn + ((i + 1) / n) * Math.PI * 2 + 0.01)
+    g.closePath()
+    g.fill()
   }
-  g.restore()
 }
 
-function cardPile(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, angle: number, color: string, label: string, icon: HTMLImageElement | undefined) {
+/** Red ribbon with white lettering, as on the printed corners. */
+function banner(g: CanvasRenderingContext2D, text: string, y: number, w: number, fs: number) {
+  const h = fs * 1.35
+  const drop = fs * 0.14
+  g.fillStyle = PRINT.redDark
+  for (const dir of [-1, 1]) {
+    const edge = (dir * w) / 2
+    g.beginPath()
+    g.moveTo(edge, y - h / 2 + drop)
+    g.lineTo(edge + dir * fs * 0.45, y - h / 2 + drop)
+    g.lineTo(edge + dir * fs * 0.22, y + drop)
+    g.lineTo(edge + dir * fs * 0.45, y + h / 2 + drop)
+    g.lineTo(edge, y + h / 2 + drop)
+    g.closePath()
+    g.fill()
+  }
+  g.fillStyle = PRINT.red
+  g.fillRect(-w / 2, y - h / 2, w, h)
+  g.fillStyle = '#fff'
+  g.font = `800 ${fs}px Mukta, "Arial Black", sans-serif`
+  g.fillText(text, 0, y + fs * 0.06, w * 0.94)
+}
+
+/** A cream instruction card printed in the centre, rotated to face its corner. */
+function printedCard(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, angle: number, title: string) {
   g.save()
   g.translate(x, y)
   g.rotate(angle)
-  for (let i = 3; i >= 0; i--) {
-    g.fillStyle = i === 0 ? color : 'rgba(0,0,0,.12)'
-    g.beginPath()
-    g.roundRect(-w / 2 + i * 3, -h / 2 + i * 3, w, h, w * 0.08)
-    g.fill()
-  }
-  g.strokeStyle = 'rgba(255,255,255,.75)'
-  g.lineWidth = w * 0.02
+  g.shadowColor = 'rgba(0,0,0,.35)'
+  g.shadowBlur = w * 0.04
+  g.shadowOffsetY = w * 0.015
+  g.fillStyle = PRINT.card
   g.beginPath()
-  g.roundRect(-w / 2 + w * 0.06, -h / 2 + w * 0.06, w * 0.88, h - w * 0.12, w * 0.05)
+  g.roundRect(-w / 2, -h / 2, w, h, w * 0.06)
+  g.fill()
+  g.shadowColor = 'transparent'
+  g.strokeStyle = PRINT.red
+  g.lineWidth = w * 0.012
+  g.setLineDash([w * 0.025, w * 0.015])
+  g.beginPath()
+  g.roundRect(-w / 2 + w * 0.04, -h / 2 + w * 0.04, w * 0.92, h - w * 0.08, w * 0.04)
   g.stroke()
-  g.fillStyle = '#fff8ee'
+  g.setLineDash([])
   g.textAlign = 'center'
   g.textBaseline = 'middle'
-  g.font = `${w * 0.15}px "Yatra One", Georgia, serif`
-  label.split(' ').forEach((wd, j, arr) => g.fillText(wd, 0, h * 0.2 + (j - (arr.length - 1) / 2) * w * 0.17))
-  if (icon) {
-    g.globalAlpha = 0.9
-    g.filter = 'brightness(0) invert(1)'
-    g.drawImage(icon, -w * 0.22, -h * 0.3, w * 0.44, w * 0.44)
-    g.filter = 'none'
+  g.fillStyle = PRINT.redDark
+  g.font = `800 ${w * 0.1}px Mukta, "Arial Black", sans-serif`
+  g.fillText(title, 0, -h * 0.3, w * 0.84)
+  g.fillStyle = PRINT.red
+  g.fillRect(-w * 0.3, -h * 0.3 + w * 0.07, w * 0.6, w * 0.008)
+  // Faux printed rules
+  g.fillStyle = 'rgba(40,28,18,.38)'
+  ;[0.78, 0.7, 0.82, 0.6, 0.74, 0.5].forEach((len, i) => {
+    g.fillRect(-w * 0.4, -h * 0.1 + i * h * 0.09, w * 0.8 * len, w * 0.016)
+  })
+  g.restore()
+}
+
+function centre(g: CanvasRenderingContext2D, size: number, k: number) {
+  const c0 = CORNER * k
+  const c1 = (CORNER + 9) * k
+  const w = c1 - c0
+  const grad = g.createRadialGradient(size / 2, size / 2, w * 0.05, size / 2, size / 2, w * 0.72)
+  grad.addColorStop(0, '#3463dc')
+  grad.addColorStop(0.6, PRINT.blue)
+  grad.addColorStop(1, PRINT.blueDark)
+  g.fillStyle = grad
+  g.fillRect(c0, c0, w, w)
+  // Printed sheen stripes
+  g.save()
+  g.beginPath()
+  g.rect(c0, c0, w, w)
+  g.clip()
+  g.strokeStyle = 'rgba(255,255,255,.05)'
+  g.lineWidth = k * 0.35
+  for (let d = 0; d < w * 2; d += k * 0.9) {
+    g.beginPath()
+    g.moveTo(c0 + d, c0)
+    g.lineTo(c0 + d - w, c1)
+    g.stroke()
   }
+  g.restore()
+  g.strokeStyle = PRINT.gold
+  g.lineWidth = k * 0.05
+  g.strokeRect(c0 + k * 0.16, c0 + k * 0.16, w - k * 0.32, w - k * 0.32)
+
+  const off = k * 2.35
+  const cards: [number, number, string][] = [
+    [-1, -1, 'COMMUNITY CHEST'],
+    [1, -1, 'CHANCE'],
+    [-1, 1, 'CHANCE'],
+    [1, 1, 'COMMUNITY CHEST'],
+  ]
+  // Each card's foot points at its corner of the board, so it reads from there.
+  for (const [dx, dy, title] of cards) printedCard(g, size / 2 + dx * off, size / 2 + dy * off, k * 2.7, k * 1.9, Math.atan2(-dx, dy), title)
+
+  g.save()
+  g.translate(size / 2, size / 2)
+  g.textAlign = 'center'
+  g.textBaseline = 'middle'
+  const fs = k * 1.0
+  const maxW = w * 0.84
+  g.font = `800 ${fs}px Mukta, "Arial Black", Impact, sans-serif`
+  g.lineJoin = 'round'
+  g.strokeStyle = '#0b0b14'
+  g.lineWidth = fs * 0.3
+  g.strokeText('BUSINESSMAN', fs * 0.05, fs * 0.08, maxW)
+  g.strokeStyle = '#fff'
+  g.lineWidth = fs * 0.16
+  g.strokeText('BUSINESSMAN', 0, 0, maxW)
+  const tg = g.createLinearGradient(0, -fs / 2, 0, fs / 2)
+  tg.addColorStop(0, '#ff5a3c')
+  tg.addColorStop(0.55, PRINT.red)
+  tg.addColorStop(1, PRINT.redDark)
+  g.fillStyle = tg
+  g.fillText('BUSINESSMAN', 0, 0, maxW)
+  g.font = `700 ${k * 0.24}px Mukta, sans-serif`
+  g.fillStyle = PRINT.gold
+  g.fillText('BUY  ·  BUILD  ·  PROSPER', 0, fs * 0.8)
   g.restore()
 }
 
@@ -128,54 +177,36 @@ export function drawBoard(s: GameState, icons: Map<IconKind, HTMLImageElement>, 
   const g = cv.getContext('2d')!
   const k = size / TOTAL
 
-  g.fillStyle = PAPER
+  g.fillStyle = PRINT.tile
   g.fillRect(0, 0, size, size)
-  grain(g, size, 0.05)
-
-  // Centre
-  const c0 = CORNER * k
-  const c1 = (CORNER + 9) * k
-  g.fillStyle = '#ecdcb6'
-  g.fillRect(c0, c0, c1 - c0, c1 - c0)
-  g.strokeStyle = GOLD
-  g.lineWidth = k * 0.03
-  g.strokeRect(c0 + k * 0.18, c0 + k * 0.18, c1 - c0 - k * 0.36, c1 - c0 - k * 0.36)
-  rangoli(g, size / 2, size / 2, k * 3.2)
-  g.save()
-  g.translate(size / 2, size / 2)
-  g.rotate(-Math.PI / 4)
-  g.textAlign = 'center'
-  g.textBaseline = 'middle'
-  g.fillStyle = 'rgba(0,0,0,.18)'
-  g.font = `${k * 1.05}px "Yatra One", Georgia, serif`
-  g.fillText('Business-Man', k * 0.04, k * 0.06)
-  g.fillStyle = BRAND
-  g.fillText('Business-Man', 0, 0)
-  g.font = `600 ${k * 0.26}px Mukta, sans-serif`
-  g.fillStyle = MUTED
-  g.fillText('BUY  ·  BUILD  ·  PROSPER', 0, k * 0.78)
-  g.restore()
-  cardPile(g, size / 2 - k * 2.5, size / 2 - k * 2.5, k * 1.7, k * 2.4, -Math.PI / 4, '#c2417a', 'Chance', icons.get('chance'))
-  cardPile(g, size / 2 + k * 2.5, size / 2 + k * 2.5, k * 1.7, k * 2.4, -Math.PI / 4 + Math.PI, '#0b7a75', 'Community Chest', icons.get('chest'))
+  centre(g, size, k)
 
   BOARD.forEach((tile, i) => {
     const { row, col, side } = placement(i)
     const [x0, x1] = span(col)
     const [y0, y1] = span(row)
     const [x, y, w, h] = [x0 * k, y0 * k, (x1 - x0) * k, (y1 - y0) * k]
-    const corner = side === 'corner' ? CORNER_STYLE[tile.kind as SimpleTileKind] : undefined
-    if (corner) {
-      g.fillStyle = corner.bg
-      g.fillRect(x, y, w, h)
+    const corner = side === 'corner' ? CORNER_STYLE[tile.kind] : undefined
+    const card = tile.kind === 'chance' || tile.kind === 'chest'
+
+    g.fillStyle = corner ? corner.bg : tile.kind === 'city' ? tint(GROUP_COLORS[tile.group].hex, 0.2) : PRINT.tile
+    g.fillRect(x, y, w, h)
+    if (card) {
+      g.save()
+      g.beginPath()
+      g.rect(x, y, w, h)
+      g.clip()
+      pinwheel(g, x + w / 2, y + h / 2, Math.hypot(w, h), i * 0.3)
+      g.restore()
     }
 
     g.save()
     g.translate(x + w / 2, y + h / 2)
     // Text reads from outside the board, like a printed board.
     const rot = side === 'bottom' ? 0 : side === 'left' ? Math.PI / 2 : side === 'top' ? Math.PI : side === 'right' ? -Math.PI / 2 : 0
-    // Corner art sits diagonally, readable from the near (bottom) edge.
+    // Corner art sits diagonally, readable from its own corner.
     const cornerRot = (row === 11) === (col === 11) ? -Math.PI / 4 : Math.PI / 4
-    g.rotate(corner ? cornerRot : rot)
+    g.rotate(corner ? cornerRot + (row === 1 ? Math.PI : 0) : rot)
     const tw = side === 'left' || side === 'right' ? h : w
     const th = side === 'left' || side === 'right' ? w : h
     g.textAlign = 'center'
@@ -183,60 +214,84 @@ export function drawBoard(s: GameState, icons: Map<IconKind, HTMLImageElement>, 
 
     if (corner) {
       const icon = icons.get(tile.kind as IconKind)
-      if (icon) g.drawImage(icon, -k * 0.38, -k * 0.62, k * 0.76, k * 0.76)
-      g.fillStyle = INK
-      g.font = `${k * 0.27}px "Yatra One", Georgia, serif`
-      g.fillText(corner.label, 0, k * 0.28)
-      g.fillStyle = MUTED
-      g.font = `500 ${k * 0.15}px Mukta, sans-serif`
-      g.fillText(tile.kind === 'start' ? `Collect ₹${groupIndian(s.settings.startSalary)}` : corner.sub, 0, k * 0.52)
+      if (icon) g.drawImage(icon, -k * 0.5, -k * 0.8, k * 1.0, k * 1.0)
+      banner(g, corner.label, k * 0.34, k * 1.3, k * 0.24)
+      g.fillStyle = PRINT.muted
+      g.font = `700 ${k * 0.14}px Mukta, sans-serif`
+      g.fillText(tile.kind === 'start' ? `COLLECT ₹${groupIndian(s.settings.startSalary)}` : corner.sub.toUpperCase(), 0, k * 0.68, k * 1.5)
+    } else if (card) {
+      const lines = tile.kind === 'chance' ? ['CHANCE'] : ['COMMUNITY', 'CHEST']
+      lines.forEach((text, j) => {
+        const ly = (j - (lines.length - 1) / 2) * k * 0.3
+        g.fillStyle = 'rgba(255,255,255,.95)'
+        g.beginPath()
+        g.roundRect(-tw * 0.44, ly - k * 0.13, tw * 0.88, k * 0.26, k * 0.05)
+        g.fill()
+        g.fillStyle = PRINT.redDark
+        g.font = `800 ${k * 0.15}px Mukta, sans-serif`
+        g.fillText(text, 0, ly + k * 0.01, tw * 0.82)
+      })
     } else {
       if (tile.kind === 'city') {
-        const band = th * 0.25
+        const band = th * 0.24
         g.fillStyle = GROUP_COLORS[tile.group].hex
         g.fillRect(-tw / 2, -th / 2, tw, band)
-        g.fillStyle = 'rgba(0,0,0,.12)'
-        g.fillRect(-tw / 2, -th / 2 + band - k * 0.025, tw, k * 0.025)
+        g.fillStyle = PRINT.line
+        g.fillRect(-tw / 2, -th / 2 + band - k * 0.02, tw, k * 0.02)
       } else {
         const icon = icons.get((tile.kind === 'service' ? tile.icon : tile.kind) as IconKind)
-        if (icon) g.drawImage(icon, -k * 0.22, -th * 0.36, k * 0.44, k * 0.44)
+        if (icon) g.drawImage(icon, -k * 0.24, -th * 0.4, k * 0.48, k * 0.48)
       }
-      const name = tile.kind === 'chest' ? 'Community Chest' : tile.name
+      const name = tile.name.toUpperCase()
       const words = name.length > 9 && name.includes(' ') ? name.split(' ') : [name]
-      const fs = k * (words.some((wd) => wd.length > 9) ? 0.16 : 0.19)
-      g.fillStyle = INK
-      g.font = `${fs}px "Yatra One", Georgia, serif`
-      const baseY = tile.kind === 'city' ? -th * 0.06 : th * 0.06
-      words.forEach((wd, j) => g.fillText(wd, 0, baseY + (j - (words.length - 1) / 2) * fs * 1.1, tw * 0.9))
-      if (tile.kind === 'city' || tile.kind === 'service') {
-        g.font = `700 ${k * 0.16}px Mukta, sans-serif`
-        g.fillStyle = MUTED
-        g.fillText(`₹${groupIndian(tile.price)}`, 0, th * 0.36)
-      } else if (tile.kind === 'incomeTax' || tile.kind === 'wealthTax') {
-        g.font = `600 ${k * 0.13}px Mukta, sans-serif`
-        g.fillStyle = MUTED
-        g.fillText(tile.kind === 'incomeTax' ? `Pay ₹${groupIndian(s.settings.incomeTax)}` : 'On buildings', 0, th * 0.36)
+      const fs = k * (words.some((wd) => wd.length > 9) ? 0.14 : 0.165)
+      g.fillStyle = PRINT.ink
+      g.font = `800 ${fs}px Mukta, "Arial Black", sans-serif`
+      const baseY = tile.kind === 'city' ? -th * 0.03 : th * 0.1
+      words.forEach((wd, j) => g.fillText(wd, 0, baseY + (j - (words.length - 1) / 2) * fs * 1.05, tw * 0.9))
+      const price =
+        tile.kind === 'city' || tile.kind === 'service'
+          ? `₹${groupIndian(tile.price)}`
+          : tile.kind === 'incomeTax'
+            ? `PAY ₹${groupIndian(s.settings.incomeTax)}`
+            : tile.kind === 'wealthTax'
+              ? 'ON BUILDINGS'
+              : ''
+      if (price) {
+        const py = th * 0.34
+        g.fillStyle = '#fff'
+        g.strokeStyle = 'rgba(36,24,15,.55)'
+        g.lineWidth = k * 0.012
+        g.beginPath()
+        g.roundRect(-tw * 0.42, py - k * 0.12, tw * 0.84, k * 0.24, k * 0.04)
+        g.fill()
+        g.stroke()
+        g.fillStyle = PRINT.redDark
+        g.font = `700 ${k * 0.135}px Mukta, sans-serif`
+        g.fillText(price, 0, py + k * 0.005, tw * 0.8)
       }
     }
     g.restore()
 
-    g.strokeStyle = 'rgba(42,28,18,.6)'
-    g.lineWidth = k * 0.018
+    g.strokeStyle = PRINT.line
+    g.lineWidth = k * 0.022
     g.strokeRect(x, y, w, h)
 
     const prop = s.properties[i]
     const owner = prop?.owner ? s.players.find((p) => p.id === prop.owner) : undefined
     if (owner) {
       g.strokeStyle = owner.color
-      g.lineWidth = k * 0.08
-      g.strokeRect(x + k * 0.06, y + k * 0.06, w - k * 0.12, h - k * 0.12)
+      g.lineWidth = k * 0.09
+      g.strokeRect(x + k * 0.065, y + k * 0.065, w - k * 0.13, h - k * 0.13)
     }
     if (prop?.mortgaged) {
       g.save()
       g.beginPath()
       g.rect(x, y, w, h)
       g.clip()
-      g.strokeStyle = 'rgba(42,28,18,.22)'
+      g.fillStyle = 'rgba(255,255,255,.35)'
+      g.fillRect(x, y, w, h)
+      g.strokeStyle = 'rgba(42,28,18,.28)'
       g.lineWidth = k * 0.03
       for (let d = -h; d < w; d += k * 0.14) {
         g.beginPath()
@@ -248,10 +303,13 @@ export function drawBoard(s: GameState, icons: Map<IconKind, HTMLImageElement>, 
     }
   })
 
-  // Outer gold rule
-  g.strokeStyle = GOLD
-  g.lineWidth = k * 0.05
-  g.strokeRect(k * 0.03, k * 0.03, size - k * 0.06, size - k * 0.06)
+  // Printed red border
+  g.strokeStyle = PRINT.red
+  g.lineWidth = k * 0.1
+  g.strokeRect(k * 0.05, k * 0.05, size - k * 0.1, size - k * 0.1)
+  g.strokeStyle = PRINT.line
+  g.lineWidth = k * 0.02
+  g.strokeRect(k * 0.1, k * 0.1, size - k * 0.2, size - k * 0.2)
   return cv
 }
 

@@ -1,11 +1,9 @@
 import { ContactShadows, Environment, Lightformer, OrbitControls, RoundedBox } from '@react-three/drei'
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { renderToStaticMarkup } from 'react-dom/server'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import * as THREE from 'three'
 import { BOARD, HOTEL_LEVEL, type GameState, type Player } from '../../engine'
 import { placement, tileCenter } from '../boardLayout'
-import { TokenBadge } from '../components/Art'
 import { useAnimatedPositions, type TokenMotion } from '../hooks/useAnimatedPositions'
 import { TOTAL, drawBoard, loadIcons, woodTexture } from './boardTexture'
 
@@ -193,35 +191,32 @@ function Buildings({ state }: { state: GameState }) {
 
 /* --------------------------------- pawns -------------------------------- */
 
+/** Classic turned pawn: wide base, collar, slim waist, ball head. */
 const PAWN_PROFILE = [
   [0, 0],
-  [0.31, 0],
-  [0.32, 0.03],
-  [0.31, 0.07],
-  [0.26, 0.1],
-  [0.2, 0.13],
-  [0.13, 0.22],
-  [0.095, 0.4],
-  [0.17, 0.44],
-  [0.18, 0.47],
-  [0.1, 0.5],
-  [0.1, 0.53],
-  [0.155, 0.58],
-  [0.19, 0.66],
-  [0.185, 0.74],
-  [0.15, 0.81],
-  [0.08, 0.86],
-  [0, 0.875],
+  [0.3, 0],
+  [0.315, 0.025],
+  [0.3, 0.06],
+  [0.25, 0.085],
+  [0.27, 0.11],
+  [0.25, 0.14],
+  [0.18, 0.17],
+  [0.13, 0.25],
+  [0.1, 0.36],
+  [0.085, 0.45],
+  [0.17, 0.48],
+  [0.185, 0.51],
+  [0.17, 0.54],
+  [0.09, 0.56],
+  [0.1, 0.58],
+  [0.16, 0.62],
+  [0.19, 0.68],
+  [0.19, 0.74],
+  [0.165, 0.8],
+  [0.12, 0.85],
+  [0.06, 0.875],
+  [0, 0.882],
 ].map(([x, y]) => new THREE.Vector2(x, y))
-
-function useTokenTexture(p: Player) {
-  return useMemo(() => {
-    const svg = renderToStaticMarkup(<TokenBadge token={p.token} color={p.color} size={160} ring />)
-    const t = new THREE.TextureLoader().load(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"'))}`)
-    t.colorSpace = THREE.SRGBColorSpace
-    return t
-  }, [p.token, p.color])
-}
 
 const OFFSETS: [number, number][] = [
   [-1, -1],
@@ -232,12 +227,29 @@ const OFFSETS: [number, number][] = [
   [0, 1.6],
 ]
 
-/** A turned, lacquered pawn in the player's colour, wearing their token as a medallion. */
+/** Gold marker bobbing over the pawn whose turn it is. */
+function TurnMarker() {
+  const ref = useRef<THREE.Group>(null)
+  useFrame(({ clock }) => {
+    const g = ref.current
+    if (!g) return
+    g.position.y = 1.2 + Math.sin(clock.elapsedTime * 3) * 0.07
+    g.rotation.y = clock.elapsedTime * 1.6
+  })
+  return (
+    <group ref={ref} position={[0, 1.2, 0]}>
+      <mesh rotation-x={Math.PI}>
+        <coneGeometry args={[0.13, 0.24, 4]} />
+        <meshPhysicalMaterial color="#f4c21b" metalness={0.6} roughness={0.25} emissive="#7a5a00" emissiveIntensity={0.4} />
+      </mesh>
+    </group>
+  )
+}
+
+/** A turned, lacquered pawn in the player's colour. */
 function Pawn({ player, target, stepMs, active }: { player: Player; target: [number, number]; stepMs: number; active: boolean }) {
   const ref = useRef<THREE.Group>(null)
-  const medal = useRef<THREE.Sprite>(null)
   const anim = useRef({ from: target, to: target, start: -1 })
-  const texture = useTokenTexture(player)
   const geometry = useMemo(() => new THREE.LatheGeometry(PAWN_PROFILE, 48), [])
 
   useFrame(({ clock }) => {
@@ -258,17 +270,20 @@ function Pawn({ player, target, stepMs, active }: { player: Player; target: [num
     // Squash slightly on landing.
     const squash = t < 1 && t > 0.85 ? 1 - (1 - (t - 0.85) / 0.15) * 0.08 : 1
     g.scale.set(1 / Math.sqrt(squash), squash, 1 / Math.sqrt(squash))
-    if (medal.current) medal.current.position.y = 1.18 + (active ? Math.sin(clock.elapsedTime * 3) * 0.05 : 0)
   })
 
   return (
     <group ref={ref} position={[target[0], 0.012, target[1]]}>
-      <mesh geometry={geometry} castShadow>
-        <meshPhysicalMaterial color={player.color} roughness={0.28} clearcoat={1} clearcoatRoughness={0.15} sheen={0.3} />
+      <mesh geometry={geometry} castShadow scale={1.1}>
+        <meshPhysicalMaterial color={player.color} roughness={0.22} clearcoat={1} clearcoatRoughness={0.1} sheen={0.3} />
       </mesh>
-      <sprite ref={medal} position={[0, 1.18, 0]} scale={[0.52, 0.52, 0.52]}>
-        <spriteMaterial map={texture} transparent depthWrite={false} />
-      </sprite>
+      {player.inJail && (
+        <mesh position={[0, 0.62, 0]} rotation-x={Math.PI / 2}>
+          <torusGeometry args={[0.2, 0.025, 8, 24]} />
+          <meshStandardMaterial color="#555" metalness={0.8} roughness={0.3} />
+        </mesh>
+      )}
+      {active && <TurnMarker />}
     </group>
   )
 }
@@ -365,7 +380,7 @@ function Die({ value, rollKey, x, onClick }: { value: number; rollKey: number; x
   return (
     <group
       ref={ref}
-      position={[x, DIE / 2, 0.75]}
+      position={[x, DIE / 2, 1.55]}
       onClick={(e) => {
         e.stopPropagation()
         onClick?.()
@@ -411,46 +426,86 @@ function CameraFit() {
   return null
 }
 
-export default function Scene3D({ state, onTile, onDiceClick }: { state: GameState; onTile: (i: number) => void; onDiceClick?: () => void }) {
+export default function Scene3D({
+  state,
+  onTile,
+  onDiceClick,
+  status,
+}: {
+  state: GameState
+  onTile: (i: number) => void
+  onDiceClick?: () => void
+  /** Optional line shown over the scene, e.g. whose turn it is. */
+  status?: ReactNode
+}) {
   const motion = useAnimatedPositions(state.players)
   const [a, b] = state.lastRoll?.dice ?? [5, 3]
   const key = state.lastRoll?.seq ?? 0
   const highlight = state.auction?.tile ?? state.turn.pendingTile
+  const [view, setView] = useState(0)
   return (
-    <Canvas shadows camera={{ position: [0, 10.5, 10.5], fov: 38 }} dpr={[1, 2]} style={{ touchAction: 'none' }}>
-      <color attach="background" args={['#1d140d']} />
-      <fog attach="fog" args={['#1d140d', 22, 40]} />
-      <ambientLight intensity={0.25} />
-      <directionalLight
-        position={[5, 13, 6]}
-        intensity={2.2}
-        color="#fff1dc"
-        castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-camera-left={-9}
-        shadow-camera-right={9}
-        shadow-camera-top={9}
-        shadow-camera-bottom={-9}
-        shadow-bias={-0.0004}
-        shadow-radius={6}
-      />
-      <pointLight position={[-8, 5, -6]} intensity={30} color="#ffb070" distance={30} />
-      {/* Studio reflections without downloading an HDR file */}
-      <Environment resolution={256}>
-        <Lightformer form="rect" intensity={2} position={[0, 6, 4]} scale={[10, 4, 1]} rotation-x={-Math.PI / 3} />
-        <Lightformer form="rect" intensity={1} color="#ffd9a8" position={[-6, 3, -4]} scale={[6, 3, 1]} rotation-y={Math.PI / 3} />
-        <Lightformer form="circle" intensity={1.5} position={[6, 4, -2]} scale={2} />
-      </Environment>
-      <CameraFit />
-      <Table />
-      <BoardMesh state={state} onTile={onTile} />
-      <Highlight tile={highlight} />
-      <Buildings state={state} />
-      <Pawns state={state} motion={motion} />
-      <Die value={a} rollKey={key} x={-0.42} onClick={onDiceClick} />
-      <Die value={b} rollKey={key} x={0.42} onClick={onDiceClick} />
-      <ContactShadows position={[0, 0.014, 0]} opacity={0.35} scale={SIZE} blur={2} far={1.5} resolution={512} />
-      <OrbitControls target={[0, 0, 0.4]} enablePan={false} enableDamping dampingFactor={0.08} minDistance={7} maxDistance={34} minPolarAngle={0.2} maxPolarAngle={Math.PI / 2.35} />
-    </Canvas>
+    <div className="relative h-full w-full">
+      {/* pan-y keeps vertical swipes scrolling the page; sideways drags spin the board. */}
+      <Canvas shadows camera={{ position: [0, 10.5, 10.5], fov: 38 }} dpr={[1, 2]} style={{ touchAction: 'pan-y' }}>
+        <color attach="background" args={['#1d140d']} />
+        <fog attach="fog" args={['#1d140d', 22, 40]} />
+        <ambientLight intensity={0.3} />
+        <directionalLight
+          position={[5, 13, 6]}
+          intensity={2.2}
+          color="#fff1dc"
+          castShadow
+          shadow-mapSize={[2048, 2048]}
+          shadow-camera-left={-9}
+          shadow-camera-right={9}
+          shadow-camera-top={9}
+          shadow-camera-bottom={-9}
+          shadow-bias={-0.0004}
+          shadow-radius={6}
+        />
+        <pointLight position={[-8, 5, -6]} intensity={30} color="#ffb070" distance={30} />
+        {/* Studio reflections without downloading an HDR file */}
+        <Environment resolution={256}>
+          <Lightformer form="rect" intensity={2} position={[0, 6, 4]} scale={[10, 4, 1]} rotation-x={-Math.PI / 3} />
+          <Lightformer form="rect" intensity={1} color="#ffd9a8" position={[-6, 3, -4]} scale={[6, 3, 1]} rotation-y={Math.PI / 3} />
+          <Lightformer form="circle" intensity={1.5} position={[6, 4, -2]} scale={2} />
+        </Environment>
+        <CameraFit key={`fit-${view}`} />
+        <Table />
+        <BoardMesh state={state} onTile={onTile} />
+        <Highlight tile={highlight} />
+        <Buildings state={state} />
+        <Pawns state={state} motion={motion} />
+        <Die value={a} rollKey={key} x={-0.42} onClick={onDiceClick} />
+        <Die value={b} rollKey={key} x={0.42} onClick={onDiceClick} />
+        <ContactShadows position={[0, 0.014, 0]} opacity={0.35} scale={SIZE} blur={2} far={1.5} resolution={512} />
+        <OrbitControls
+          key={`orbit-${view}`}
+          target={[0, 0, 0.4]}
+          enablePan={false}
+          enableDamping
+          dampingFactor={0.08}
+          minDistance={7}
+          maxDistance={34}
+          minPolarAngle={0.2}
+          maxPolarAngle={Math.PI / 2.35}
+          touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_ROTATE }}
+        />
+      </Canvas>
+      {status && (
+        <div className="pointer-events-none absolute inset-x-0 top-2 flex justify-center px-2">
+          <div className="rounded-full bg-black/55 px-3 py-1 text-sm font-semibold text-white shadow backdrop-blur-sm" aria-live="polite">
+            {status}
+          </div>
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={() => setView((v) => v + 1)}
+        className="absolute bottom-2 right-2 rounded-full bg-black/55 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm hover:bg-black/70"
+      >
+        Reset view
+      </button>
+    </div>
   )
 }

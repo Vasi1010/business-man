@@ -9,7 +9,8 @@ import { useGameFeedback } from '../hooks/useGameFeedback'
 import { useNow } from '../hooks/useNow'
 import { ActionPanel } from '../components/ActionPanel'
 import { Logo } from '../components/Art'
-import { Board } from '../components/Board'
+import { BoardViewToggle, GameBoard } from '../components/GameBoard'
+import { MoneyFx } from '../components/MoneyFx'
 import { CardReveal, EndScreen } from '../components/Overlays'
 import { PropertyCard } from '../components/PropertyCard'
 import { AssetsPanel, EventLog, PlayersPanel } from '../components/SidePanels'
@@ -82,6 +83,7 @@ function TopBar({ c }: { c: GameController }) {
         {c.mode === 'local' && <span className="ml-1 hidden text-sm text-muted sm:inline">Pass and play</span>}
         <div className="ml-auto flex items-center gap-1">
           {c.state.endsAt > 0 && c.state.status === 'playing' && <Countdown endsAt={c.state.endsAt} />}
+          <BoardViewToggle />
           <PrefButtons />
           <Button
             variant="ghost"
@@ -146,7 +148,7 @@ export function GameScreen({ controller: c }: { controller: GameController }) {
         <TopBar c={c} />
         <main className="mx-auto grid max-w-7xl gap-3 px-2 pt-2 sm:px-4 sm:pt-4 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
           <div className="mx-auto w-full lg:max-w-[calc(100dvh-5.5rem)]">
-            <Board onTileClick={setTile} onDiceClick={onDiceClick} />
+            <GameBoard onTileClick={setTile} onDiceClick={onDiceClick} />
           </div>
           <div className="flex flex-col gap-3">
             <ActionPanel />
@@ -179,6 +181,7 @@ export function GameScreen({ controller: c }: { controller: GameController }) {
         <PropertyCard tile={tile} onClose={() => setTile(null)} />
         {draft && <TradeDialog key={draft.key} draft={draft} onClose={() => setDraft(null)} />}
         <CardReveal />
+        <MoneyFx />
         <EndScreen />
       </div>
     </ControllerContext.Provider>

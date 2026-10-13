@@ -8,6 +8,8 @@ import { PlayersPanel } from '../components/SidePanels'
 import { navigate } from '../router'
 import { PrefButtons } from '../screens/GameScreen'
 import { useDemoGame } from './useDemoGame'
+import { MoneyFx } from '../components/MoneyFx'
+import { useGameFeedback } from '../hooks/useGameFeedback'
 
 const Scene3D = lazy(() => import('../three/Scene3D'))
 
@@ -19,6 +21,7 @@ export function PreviewPage() {
   const [style, setStyle] = useState<Style>('tilt')
   const [tile, setTile] = useState<number | null>(null)
   const s = controller.state
+  useGameFeedback(s, null)
   const current = s.players.find((p) => p.id === s.turn.playerId)
 
   return (
@@ -83,6 +86,7 @@ export function PreviewPage() {
           </div>
         </main>
         <PropertyCard tile={tile} onClose={() => setTile(null)} />
+        <MoneyFx />
       </div>
     </ControllerContext.Provider>
   )
