@@ -27,6 +27,10 @@ import {
   ranking,
   rentFor,
   sellBackValue,
+  sellRefund,
+  buildCost,
+  nextLevel,
+  previousLevel,
   unmortgageCost,
   wealthTaxFor,
 } from './rules'
@@ -780,10 +784,11 @@ function handle(ctx: Ctx, action: Action, actorId: PlayerId) {
       // Any city you own can be built on; you don't need the rest of its colour.
       if (prop.mortgaged) fail(`Unmortgage ${t.name} before building`)
       if (prop.level >= HOTEL_LEVEL) fail(`${t.name} already has a hotel`)
-      if (p.cash < t.houseCost) fail(`You need ${m(t.houseCost)} to build`)
-      debit(ctx, p, t.houseCost, `building on ${t.name}`)
-      prop.level += 1
-      log(ctx, `${p.name} built a ${prop.level === HOTEL_LEVEL ? 'hotel' : 'house'} on ${t.name} for ${m(t.houseCost)}.`)
+      const cost = buildCost(s, t, prop.level)
+      if (p.cash < cost) fail(`You need ${m(cost)} to build`)
+      debit(ctx, p, cost, `building on ${t.name}`)
+      prop.level = nextLevel(s, prop.level)
+      log(ctx, `${p.name} built a ${prop.level === HOTEL_LEVEL ? 'hotel' : 'house'} on ${t.name} for ${m(cost)}.`)
       return
     }
 
@@ -793,8 +798,8 @@ function handle(ctx: Ctx, action: Action, actorId: PlayerId) {
       const t = ownableTile(action.tile)
       if (t.kind !== 'city' || prop.level === 0) fail('No buildings to sell there')
       const wasHotel = prop.level === HOTEL_LEVEL
-      prop.level -= 1
-      const refund = sellBackValue(t)
+      const refund = sellRefund(s, t, prop.level)
+      prop.level = previousLevel(s, prop.level)
       credit(ctx, p, refund, `sold a building on ${t.name}`)
       log(ctx, `${p.name} sold a ${wasHotel ? 'hotel' : 'house'} on ${t.name} for ${m(refund)}.`)
       return

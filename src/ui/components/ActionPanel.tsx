@@ -9,6 +9,7 @@ import {
   ownableTile,
   ownedTiles,
   rentFor,
+  sellRefund,
   type Action,
   type GameState,
   type Player,
@@ -70,7 +71,7 @@ function RaiseFunds({
     const t = ownableTile(tile)
     const options: { label: string; action: Action }[] = []
     if (t.kind === 'city' && legal(s, { type: 'sellBuilding', tile }, playerId))
-      options.push({ label: `Sell building +${formatMoney(Math.floor(t.houseCost / 2))}`, action: { type: 'sellBuilding', tile } })
+      options.push({ label: `Sell building +${formatMoney(sellRefund(s, t, s.properties[tile].level))}`, action: { type: 'sellBuilding', tile } })
     if (legal(s, { type: 'mortgage', tile }, playerId))
       options.push({ label: `Mortgage +${formatMoney(t.mortgage)}`, action: { type: 'mortgage', tile } })
     return options.length ? [{ tile, name: t.name, options }] : []

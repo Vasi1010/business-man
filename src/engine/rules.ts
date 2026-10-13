@@ -1,6 +1,7 @@
 import {
   BOARD,
   COLOUR_RENT_BONUS,
+  HOTEL_LEVEL,
   OWNABLE_TILES,
   SPECIAL_DEFAULTS,
   UNMORTGAGE_INTEREST,
@@ -19,6 +20,7 @@ export const DEFAULT_SETTINGS: Settings = {
   jailHalfRent: false,
   rollTwelveToStart: false,
   doublesRollAgain: true,
+  oneHouseRule: false,
   timeLimitMinutes: 0,
   ...SPECIAL_DEFAULTS,
 }
@@ -74,6 +76,28 @@ export function unmortgageCost(tileIndex: number): number {
 
 export function sellBackValue(t: CityTile): number {
   return Math.floor(t.houseCost / 2)
+}
+
+/**
+ * Building levels: 0 → 1 → 2 → 3 houses → hotel. With the one-house rule it's 0 → 1 house → hotel,
+ * and the hotel costs the three skipped steps, so a hotel always represents the same investment.
+ */
+export function nextLevel(s: GameState, level: number): number {
+  return s.settings.oneHouseRule && level === 1 ? HOTEL_LEVEL : level + 1
+}
+
+export function previousLevel(s: GameState, level: number): number {
+  return s.settings.oneHouseRule && level === HOTEL_LEVEL ? 1 : level - 1
+}
+
+/** Cost of the next building on a city at this level. */
+export function buildCost(s: GameState, t: CityTile, level: number): number {
+  return (nextLevel(s, level) - level) * t.houseCost
+}
+
+/** Cash back for selling the top building on a city at this level (half its cost). */
+export function sellRefund(s: GameState, t: CityTile, level: number): number {
+  return (level - previousLevel(s, level)) * sellBackValue(t)
 }
 
 export function buildingCounts(s: GameState, id: PlayerId): { houses: number; hotels: number } {

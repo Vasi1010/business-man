@@ -104,6 +104,13 @@ export function SettingsEditor({
           onChange={(v) => set('doublesRollAgain', v)}
           disabled={disabled}
         />
+        <Toggle
+          label="One house per city"
+          hint="Each city takes one house, then a hotel (the hotel costs 3 houses)"
+          checked={!!value.oneHouseRule}
+          onChange={(v) => set('oneHouseRule', v)}
+          disabled={disabled}
+        />
         <Toggle label="Roll a 12 to start moving" checked={value.rollTwelveToStart} onChange={(v) => set('rollTwelveToStart', v)} disabled={disabled} />
       </div>
       <div className="py-2">

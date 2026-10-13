@@ -130,7 +130,7 @@ The rules follow the brief. Where it left room for interpretation:
 - **First-lap rule** (off by default; switch it on in the lobby): before passing Start you can't buy or bid. If you land on an unowned tile, nothing happens (it isn't auctioned).
 - **Debts:** if you can't pay, the debt is queued and play pauses until you sell, mortgage, trade and pay. Bankruptcy is only offered when even selling everything wouldn't cover it. When several players are owed (Club, "pay every player"), each payment is a separate debt in order.
 - **Bankruptcy:** buildings are sold back at half price first. Owing a player: they get your cash, properties (mortgages stay) and jail passes. Owing the bank: properties are auctioned one by one.
-- **Building:** you can build on any city you own (up to 3 houses, then a hotel) as long as you pay the house cost. You don't need the rest of its colour, and there's no even-building rule.
+- **Building:** you can build on any city you own (up to 3 houses, then a hotel) as long as you pay the house cost. You don't need the rest of its colour, and there's no even-building rule. With the **One house per city** house rule (off by default, set in the lobby), each city takes one house and then a hotel, which costs three houses.
 - **Mortgages:** sell a city's buildings before mortgaging it. Traded mortgaged tiles stay mortgaged.
 - **Trading buildings:** cities can be traded with their houses and hotels on them.
 - **Colour bonus:** rent on a city (site, houses or hotel) goes up by ₹1,000 for each other city of that colour the owner holds (+₹1,000 with 2, +₹2,000 with 3, +₹3,000 with all 4). A hotel costs ₹2,000–3,000 more rent than three houses. Services keep their pair rule.

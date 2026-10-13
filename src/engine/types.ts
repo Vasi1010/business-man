@@ -36,6 +36,8 @@ export interface Settings {
   rollTwelveToStart: boolean
   /** Doubles give another roll (and three doubles in a row go to Jail). */
   doublesRollAgain: boolean
+  /** House rule: one house per city, then straight to a hotel (which costs 3 houses). */
+  oneHouseRule?: boolean
   startingCash: number
   startSalary: number
   /** 0 = no limit. */

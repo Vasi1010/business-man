@@ -446,6 +446,28 @@ describe('building', () => {
     expect(s.properties[1].level).toBe(3)
   })
 
+  it('one-house rule: one house, then a hotel that costs three houses', () => {
+    let s = arrange(game(3, { oneHouseRule: true }), (d) => {
+      own(d, 'a', 1)
+      d.players[0].cash = 30_000
+    })
+    s = act(s, { type: 'build', tile: 1 }, 'a')
+    expect(s.properties[1].level).toBe(1)
+    expect(cash(s, 'a')).toBe(30_000 - 3000)
+    s = act(s, { type: 'build', tile: 1 }, 'a')
+    expect(s.properties[1].level).toBe(4)
+    expect(cash(s, 'a')).toBe(30_000 - 3000 - 9000)
+    expect(actError(s, { type: 'build', tile: 1 }, 'a')).toMatch(/already has a hotel/)
+    // Selling the hotel goes back to one house and refunds half of its cost.
+    s = act(s, { type: 'sellBuilding', tile: 1 }, 'a')
+    expect(s.properties[1].level).toBe(1)
+    expect(cash(s, 'a')).toBe(30_000 - 3000 - 9000 + 4500)
+  })
+
+  it('one-house rule is off by default', () => {
+    expect(game().settings.oneHouseRule).toBe(false)
+  })
+
   it('cannot build on services', () => {
     const s = arrange(game(), (d) => own(d, 'a', 5, 14))
     expect(actError(s, { type: 'build', tile: 5 }, 'a')).toMatch(/only build on cities/)

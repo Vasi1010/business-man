@@ -1,6 +1,8 @@
 import {
   BOARD,
   applyAction,
+  buildCost,
+  nextLevel,
   CHANCE,
   CHEST,
   COLOUR_RENT_BONUS,
@@ -33,9 +35,11 @@ export function PropertyCard({ tile, onClose }: { tile: number | null; onClose: 
     {
       label:
         t.kind === 'city' && prop
-          ? prop.level === HOTEL_LEVEL - 1
-            ? `Build hotel (${formatMoney(t.houseCost)})`
-            : `Build house ${prop.level + 1} of 3 (${formatMoney(t.houseCost)})`
+          ? nextLevel(s, prop.level) === HOTEL_LEVEL
+            ? `Build hotel (${formatMoney(buildCost(s, t, prop.level))})`
+            : s.settings.oneHouseRule
+              ? `Build house (${formatMoney(t.houseCost)})`
+              : `Build house ${prop.level + 1} of 3 (${formatMoney(t.houseCost)})`
           : 'Build',
       action: { type: 'build', tile },
       variant: 'primary',
@@ -89,8 +93,12 @@ export function PropertyCard({ tile, onClose }: { tile: number | null; onClose: 
                 <>
                   <Row label="Site" value={t.rents[0]} active={prop.owner !== null && prop.level === 0} />
                   <Row label="1 house" value={t.rents[1]} active={prop.level === 1} />
-                  <Row label="2 houses" value={t.rents[2]} active={prop.level === 2} />
-                  <Row label="3 houses" value={t.rents[3]} active={prop.level === 3} />
+                  {!s.settings.oneHouseRule && (
+                    <>
+                      <Row label="2 houses" value={t.rents[2]} active={prop.level === 2} />
+                      <Row label="3 houses" value={t.rents[3]} active={prop.level === 3} />
+                    </>
+                  )}
                   <Row label="Hotel" value={t.rents[4]} active={prop.level === 4} />
                 </>
               ) : (
@@ -128,7 +136,9 @@ export function PropertyCard({ tile, onClose }: { tile: number | null; onClose: 
           </div>
           {t.kind === 'city' && owner && owner.id === actor && (
             <p className="mt-3 text-xs text-muted">
-              Build up to 3 houses, then a hotel ({formatMoney(t.houseCost)} each), on your turn. You don't need the other {GROUP_COLORS[t.group].name.toLowerCase()} cities.
+              {s.settings.oneHouseRule
+                ? `Build one house (${formatMoney(t.houseCost)}), then a hotel (${formatMoney(t.houseCost * 3)}), on your turn.`
+                : `Build up to 3 houses, then a hotel (${formatMoney(t.houseCost)} each), on your turn.`} You don't need the other {GROUP_COLORS[t.group].name.toLowerCase()} cities.
               {buildHint && <strong className="block text-bad">Can't build right now: {buildHint}.</strong>}
             </p>
           )}
