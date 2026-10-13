@@ -30,6 +30,20 @@ export function loadIcons(): Promise<Map<IconKind, HTMLImageElement>> {
   return iconCache
 }
 
+/** How much taller the far row's labels are drawn, to offset the camera's foreshortening. */
+const TOP_ROW_STRETCH = 1.4
+
+/** Where to break long one-word names on narrow squares. */
+const WORD_BREAKS: Record<string, string[]> = {
+  CHANDIGARH: ['CHANDI-', 'GARH'],
+  BANGALORE: ['BANGA-', 'LORE'],
+  DARJEELING: ['DARJEE-', 'LING'],
+  HYDERABAD: ['HYDERA-', 'BAD'],
+  AMRITSAR: ['AMRIT-', 'SAR'],
+  SRINAGAR: ['SRINA-', 'GAR'],
+  CALCUTTA: ['CAL-', 'CUTTA'],
+}
+
 /** Draw text at the largest size up to maxSize that fits maxWidth. */
 function fitText(g: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, maxSize: number, weight = 800) {
   g.font = `${weight} ${maxSize}px Mukta, "Arial Black", sans-serif`
@@ -240,6 +254,13 @@ export function drawBoard(s: GameState, icons: Map<IconKind, HTMLImageElement>, 
       else cw -= edge
       const cx = cx0 + cw / 2
       const cy = cy0 + ch / 2
+      // The far (top) row is foreshortened by the camera's tilt, so draw its labels taller to compensate.
+      const stretch = side === 'top' ? TOP_ROW_STRETCH : 1
+      const chFit = ch / stretch
+      g.save()
+      g.translate(cx, cy)
+      g.scale(1, stretch)
+      g.translate(-cx, -cy)
 
       if (card) {
         const lines = tile.kind === 'chance' ? ['CHANCE'] : ['COMMUNITY', 'CHEST']
@@ -263,18 +284,22 @@ export function drawBoard(s: GameState, icons: Map<IconKind, HTMLImageElement>, 
                 : ''
         const icon = tile.kind === 'city' ? undefined : icons.get((tile.kind === 'service' ? tile.icon : tile.kind) as IconKind)
         const wide = cw > ch
-        const words = tile.name.toUpperCase().split(' ')
+        const name = tile.name.toUpperCase()
+        const words = name.split(' ')
         // Wide side squares fit names on one line; narrow ones split long names in two.
-        const lines =
-          !wide && words.length > 1 && tile.name.length > 9
+        const lines = wide
+          ? [name]
+          : words.length > 1 && name.length > 9
             ? [words.slice(0, Math.ceil(words.length / 2)).join(' '), words.slice(Math.ceil(words.length / 2)).join(' ')]
-            : [tile.name.toUpperCase()]
+            : side === 'top' && WORD_BREAKS[name]
+              ? WORD_BREAKS[name]
+              : [name]
         // Stack: [icon] name, price, centred in the label area and shrunk to fit its height.
         let iconSize = k * 0.4
-        let nameSize = k * 0.24
+        let nameSize = k * (side === 'top' ? 0.3 : 0.24)
         let priceH = k * 0.27
         const stackH = () => (icon ? iconSize + k * 0.04 : 0) + lines.length * nameSize * 1.02 + (price ? priceH + k * 0.06 : 0)
-        const fit = Math.min(1, (ch * 0.9) / stackH())
+        const fit = Math.min(1, (chFit * 0.9) / stackH())
         iconSize *= fit
         nameSize *= fit
         priceH *= fit
@@ -302,6 +327,7 @@ export function drawBoard(s: GameState, icons: Map<IconKind, HTMLImageElement>, 
           fitText(g, price, cx, top + priceH / 2 + k * 0.01, cw * 0.82, priceH * 0.74, 700)
         }
       }
+      g.restore()
     }
 
     g.strokeStyle = PRINT.line
