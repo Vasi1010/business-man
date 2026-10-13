@@ -2,6 +2,7 @@ import { create } from 'zustand'
 
 export interface MoneyBurst {
   id: number
+  playerId: string
   amount: number
   who: string
   reason: string

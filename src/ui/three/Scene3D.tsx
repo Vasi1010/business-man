@@ -1,8 +1,9 @@
-import { ContactShadows, Environment, Lightformer, OrbitControls, RoundedBox } from '@react-three/drei'
+import { ContactShadows, Environment, Html, Lightformer, OrbitControls, RoundedBox } from '@react-three/drei'
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import * as THREE from 'three'
-import { BOARD, HOTEL_LEVEL, type GameState, type Player } from '../../engine'
+import { BOARD, HOTEL_LEVEL, groupIndian, type GameState, type Player } from '../../engine'
+import { useMoneyFx } from '../../store/moneyFx'
 import { placement, tileCenter } from '../boardLayout'
 import { useAnimatedPositions, type TokenMotion } from '../hooks/useAnimatedPositions'
 import { TOTAL, drawBoard, loadIcons, woodTexture } from './boardTexture'
@@ -246,6 +247,18 @@ function TurnMarker() {
   )
 }
 
+/** Red/green amounts that rise from the pawn when its player pays or earns. */
+function MoneyTags({ playerId }: { playerId: string }) {
+  const bursts = useMoneyFx((s) => s.bursts).filter((b) => b.playerId === playerId)
+  return bursts.map((b, i) => (
+    <Html key={b.id} position={[0, 1.15 + i * 0.45, 0]} center zIndexRange={[30, 0]} style={{ pointerEvents: 'none' }}>
+      <div className={`money-tag ${b.amount > 0 ? 'money-tag-gain' : 'money-tag-loss'}`}>
+        {b.amount > 0 ? '+' : '−'}₹{groupIndian(Math.abs(b.amount))}
+      </div>
+    </Html>
+  ))
+}
+
 /** A turned, lacquered pawn in the player's colour. */
 function Pawn({ player, target, stepMs, active }: { player: Player; target: [number, number]; stepMs: number; active: boolean }) {
   const ref = useRef<THREE.Group>(null)
@@ -284,6 +297,7 @@ function Pawn({ player, target, stepMs, active }: { player: Player; target: [num
         </mesh>
       )}
       {active && <TurnMarker />}
+      <MoneyTags playerId={player.id} />
     </group>
   )
 }

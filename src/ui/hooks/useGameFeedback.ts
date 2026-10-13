@@ -47,7 +47,7 @@ export function useGameFeedback(state: GameState, meId: PlayerId | null) {
             moneyToasts++
             const player = state.players.find((p) => p.id === e.playerId)
             const who = meId !== null && e.playerId === meId ? 'You' : (player?.name ?? '?')
-            const burst = { amount: e.amount, who, reason: e.reason, color: player?.color ?? '#888888' }
+            const burst = { playerId: e.playerId, amount: e.amount, who, reason: e.reason, color: player?.color ?? '#888888' }
             later(() => moneyBurst(burst))
           }
           break
