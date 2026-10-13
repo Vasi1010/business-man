@@ -103,8 +103,8 @@ export function PropertyCard({ tile, onClose }: { tile: number | null; onClose: 
           </table>
           {t.kind === 'city' && (
             <p className="mt-2 text-xs text-muted">
-              Own more {GROUP_COLORS[t.group].name.toLowerCase()} cities and site and house rent goes up: +{formatMoney(COLOUR_RENT_BONUS)} with 2, +
-              {formatMoney(COLOUR_RENT_BONUS * 2)} with 3, +{formatMoney(COLOUR_RENT_BONUS * 3)} with all 4. Hotel rent stays fixed.
+              Own more {GROUP_COLORS[t.group].name.toLowerCase()} cities and every rent here goes up: +{formatMoney(COLOUR_RENT_BONUS)} with 2, +
+              {formatMoney(COLOUR_RENT_BONUS * 2)} with 3, +{formatMoney(COLOUR_RENT_BONUS * 3)} with all 4.
             </p>
           )}
           <div className="mt-3 rounded-xl bg-paper-2 p-3 text-sm">

@@ -133,7 +133,7 @@ The rules follow the brief. Where it left room for interpretation:
 - **Building:** you can build on any city you own (up to 3 houses, then a hotel) as long as you pay the house cost. You don't need the rest of its colour, and there's no even-building rule.
 - **Mortgages:** sell a city's buildings before mortgaging it. Traded mortgaged tiles stay mortgaged.
 - **Trading buildings:** cities can be traded with their houses and hotels on them.
-- **Colour bonus:** site and house rent on a city goes up by ₹1,000 for each other city of that colour the owner holds (+₹1,000 with 2, +₹2,000 with 3, +₹3,000 with all 4). Hotel rent is fixed and gets no bonus; it is set so a hotel always earns more than three houses with the full bonus. Services keep their pair rule.
+- **Colour bonus:** rent on a city (site, houses or hotel) goes up by ₹1,000 for each other city of that colour the owner holds (+₹1,000 with 2, +₹2,000 with 3, +₹3,000 with all 4). A hotel costs ₹2,000–3,000 more rent than three houses. Services keep their pair rule.
 - **Jail:** doubles on your jail roll free you and move you, but don't give an extra roll.
 - **Auctions** (off by default, so you simply buy or leave a property; switch them on in the lobby): start with a 10-second countdown that resets on each bid; they also end once everyone else drops out.
 

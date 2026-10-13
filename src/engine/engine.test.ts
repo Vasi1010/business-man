@@ -191,7 +191,7 @@ describe('rent', () => {
       place(d, 'a', 28)
       d.players[0].cash = 50_000
     })
-    const expected = [5400, 9600, 14400, 20400]
+    const expected = [5400, 9600, 14400, 17400]
     for (let level = 1; level <= 4; level++) {
       const s = roll(
         arrange(base, (d) => (d.properties[35].level = level)),
@@ -202,13 +202,13 @@ describe('rent', () => {
     }
   })
 
-  it('applies the colour bonus to house rent but not to hotels', () => {
+  it('applies the colour bonus to house and hotel rent too', () => {
     const s = arrange(game(), (d) => {
       own(d, 'b', 28, 29, 32, 35)
       d.properties[35].level = 4
       d.properties[32].level = 1
     })
-    expect(rentFor(s, 35)).toBe(20400)
+    expect(rentFor(s, 35)).toBe(17400 + 3000)
     expect(rentFor(s, 32)).toBe(4950 + 3000)
   })
 
