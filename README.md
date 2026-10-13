@@ -114,8 +114,9 @@ Vite bakes env vars in at build time, so redeploy after changing them.
 
 Everything lives in **`src/engine/data/board.ts`**:
 
-- `BOARD`: the 40 tiles in order, with city prices, rents `[site, 1 house, 2, 3, hotel]`, house/hotel cost, mortgage values, and paired-service rents.
-- `GROUP_COLORS`: the colour bands.
+- `BOARD`: the 36 tiles in order (8 per side, like the printed board), with city prices, rents `[site, 1 house, 2, 3, hotel]`, house/hotel cost, mortgage values, and paired-service rents.
+- `GROUP_COLORS`: the four colour sets (green, lavender, pink, blue; 4 cities each).
+- `COLOUR_RENT_MULTIPLIER`: how rent rises with the number of same-colour cities owned.
 - `CHANCE` / `CHEST`: what each dice total (2–12) does.
 - `SPECIAL_DEFAULTS`: default starting cash, Start salary, taxes, Club, Rest House and jail fine. All of these can also be changed per game in the lobby.
 - `AUCTION_STEP`, `AUCTION_SECONDS`, `UNMORTGAGE_INTEREST`.
@@ -129,9 +130,10 @@ The rules follow the brief. Where it left room for interpretation:
 - **First-lap rule** (off by default; switch it on in the lobby): before passing Start you can't buy or bid. If you land on an unowned tile, nothing happens (it isn't auctioned).
 - **Debts:** if you can't pay, the debt is queued and play pauses until you sell, mortgage, trade and pay. Bankruptcy is only offered when even selling everything wouldn't cover it. When several players are owed (Club, "pay every player"), each payment is a separate debt in order.
 - **Bankruptcy:** buildings are sold back at half price first. Owing a player: they get your cash, properties (mortgages stay) and jail passes. Owing the bank: properties are auctioned one by one.
-- **Mortgages:** you must sell the buildings in a colour group before mortgaging any of it. Traded mortgaged tiles stay mortgaged.
-- **Trading buildings:** cities can be traded with their houses and hotels on them, but a colour group that has buildings must be traded as a whole.
-- **Full-group double rent** applies to unbuilt cities whenever the owner holds the whole group.
+- **Building:** you can build on any city you own (up to 3 houses, then a hotel) as long as you pay the house cost. You don't need the rest of its colour, and there's no even-building rule.
+- **Mortgages:** sell a city's buildings before mortgaging it. Traded mortgaged tiles stay mortgaged.
+- **Trading buildings:** cities can be traded with their houses and hotels on them.
+- **Colour bonus:** every rent on a city (site, houses or hotel) is multiplied by how many cities of that colour the owner holds: ×1 for one, ×1.5 for two, ×2 for three, ×3 for all four. Services keep their pair rule.
 - **Jail:** doubles on your jail roll free you and move you, but don't give an extra roll.
 - **Auctions** (off by default, so you simply buy or leave a property; switch them on in the lobby): start with a 10-second countdown that resets on each bid; they also end once everyone else drops out.
 

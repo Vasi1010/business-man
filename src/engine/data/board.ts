@@ -3,7 +3,7 @@
  * Edit this file to rebalance the game; the engine reads nothing else.
  */
 
-export type CityGroup = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
+export type CityGroup = 1 | 2 | 3 | 4
 
 export interface CityTile {
   kind: 'city'
@@ -76,59 +76,59 @@ export const BOARD: readonly Tile[] = [
   /* 2 */ simple('chest', 'Community Chest'),
   /* 3 */ city('Patna', 1, 2600, [200, 900, 1600, 2400, 3400], 3000, 1300),
   /* 4 */ simple('incomeTax', 'Income Tax'),
-  /* 5 */ service('Railway', 'train', 9500, 1100, 2200, 15, 4750, true),
-  /* 6 */ city('Kanpur', 2, 2800, [250, 1100, 2000, 3000, 4250], 3000, 1400),
+  /* 5 */ service('Railway', 'train', 9500, 1100, 2200, 14, 4750, true),
+  /* 6 */ city('Kanpur', 1, 2800, [250, 1100, 2000, 3000, 4250], 3000, 1400),
   /* 7 */ simple('chance', 'Chance'),
-  /* 8 */ city('Indore', 2, 2800, [250, 1100, 2000, 3000, 4250], 3000, 1400),
-  /* 9 */ city('Jaipur', 2, 3300, [300, 1350, 2400, 3600, 5100], 3000, 1650),
-  /* 10 */ simple('jail', 'Jail'),
-  /* 11 */ city('Simla', 3, 3500, [300, 1350, 2400, 3600, 5100], 4000, 1750),
-  /* 12 */ service('Electric Company', 'bulb', 2500, 500, 1000, 28, 1250, false),
-  /* 13 */ city('Amritsar', 3, 3500, [300, 1350, 2400, 3600, 5100], 4000, 1750),
-  /* 14 */ city('Srinagar', 3, 4000, [400, 1800, 3200, 4800, 6800], 4000, 2000),
-  /* 15 */ service('B.E.S.T. Bus', 'bus', 3500, 600, 1100, 5, 1750, true),
-  /* 16 */ city('Chandigarh', 4, 4200, [400, 1800, 3200, 4800, 6800], 4000, 2100),
-  /* 17 */ simple('chest', 'Community Chest'),
-  /* 18 */ city('Ludhiana', 4, 4200, [400, 1800, 3200, 4800, 6800], 4000, 2100),
-  /* 19 */ city('Goa', 4, 4500, [450, 2000, 3600, 5400, 7650], 4000, 2250),
-  /* 20 */ simple('club', 'Club'),
-  /* 21 */ city('Darjeeling', 5, 5000, [500, 2250, 4000, 6000, 8500], 6000, 2500),
-  /* 22 */ simple('chance', 'Chance'),
-  /* 23 */ city('Hyderabad', 5, 5000, [500, 2250, 4000, 6000, 8500], 6000, 2500),
-  /* 24 */ city('Calcutta', 5, 5500, [600, 2700, 4800, 7200, 10200], 6000, 2750),
-  /* 25 */ service('Air India', 'plane', 10500, 1200, 2400, 35, 5250, true),
-  /* 26 */ city('Madras', 6, 5800, [650, 2900, 5200, 7800, 11050], 6000, 2900),
-  /* 27 */ city('Bangalore', 6, 5800, [650, 2900, 5200, 7800, 11050], 6000, 2900),
-  /* 28 */ service('Water Works', 'tap', 3200, 500, 1000, 12, 1600, false),
-  /* 29 */ city('Cochin', 6, 6200, [750, 3400, 6000, 9000, 12750], 6000, 3100),
-  /* 30 */ simple('restHouse', 'Rest House'),
-  /* 31 */ city('Pune', 7, 6500, [800, 3600, 6400, 9600, 13600], 7000, 3250),
-  /* 32 */ city('Lucknow', 7, 6500, [800, 3600, 6400, 9600, 13600], 7000, 3250),
-  /* 33 */ simple('chest', 'Community Chest'),
-  /* 34 */ city('Ahmedabad', 7, 7000, [900, 4050, 7200, 10800, 15300], 7000, 3500),
-  /* 35 */ service('Motor Boat', 'boat', 5500, 500, 900, 25, 2750, true),
-  /* 36 */ simple('chance', 'Chance'),
-  /* 37 */ simple('wealthTax', 'Wealth Tax'),
-  /* 38 */ city('Delhi', 8, 8000, [1100, 4950, 8800, 13200, 18700], 7000, 4000),
-  /* 39 */ city('Mumbai', 8, 8500, [1200, 5400, 9600, 14400, 20400], 7000, 4250),
+  /* 8 */ city('Jaipur', 1, 3000, [250, 1100, 2000, 3000, 4250], 3000, 1500),
+  /* 9 */ simple('jail', 'Jail'),
+  /* 10 */ city('Simla', 2, 3500, [300, 1350, 2400, 3600, 5100], 4000, 1750),
+  /* 11 */ service('Electric Company', 'bulb', 2500, 500, 1000, 24, 1250, false),
+  /* 12 */ city('Amritsar', 2, 3600, [300, 1350, 2400, 3600, 5100], 4000, 1800),
+  /* 13 */ city('Srinagar', 2, 4000, [400, 1800, 3200, 4800, 6800], 4000, 2000),
+  /* 14 */ service('B.E.S.T. Bus', 'bus', 3500, 600, 1100, 5, 1750, true),
+  /* 15 */ simple('chest', 'Community Chest'),
+  /* 16 */ city('Madras', 2, 4200, [400, 1800, 3200, 4800, 6800], 4000, 2100),
+  /* 17 */ simple('chance', 'Chance'),
+  /* 18 */ simple('club', 'Club'),
+  /* 19 */ city('Chandigarh', 3, 5000, [500, 2250, 4000, 6000, 8500], 6000, 2500),
+  /* 20 */ city('Goa', 3, 5200, [500, 2250, 4000, 6000, 8500], 6000, 2600),
+  /* 21 */ service('Air India', 'plane', 10500, 1200, 2400, 30, 5250, true),
+  /* 22 */ city('Bangalore', 3, 5500, [600, 2700, 4800, 7200, 10200], 6000, 2750),
+  /* 23 */ simple('chest', 'Community Chest'),
+  /* 24 */ service('Water Works', 'tap', 3200, 500, 1000, 11, 1600, false),
+  /* 25 */ city('Delhi', 3, 6000, [650, 2900, 5200, 7800, 11050], 6000, 3000),
+  /* 26 */ simple('chance', 'Chance'),
+  /* 27 */ simple('restHouse', 'Rest House'),
+  /* 28 */ city('Darjeeling', 4, 6500, [800, 3600, 6400, 9600, 13600], 7000, 3250),
+  /* 29 */ city('Hyderabad', 4, 7000, [900, 4050, 7200, 10800, 15300], 7000, 3500),
+  /* 30 */ service('Motor Boat', 'boat', 5500, 500, 900, 21, 2750, true),
+  /* 31 */ simple('chest', 'Community Chest'),
+  /* 32 */ city('Calcutta', 4, 7500, [1100, 4950, 8800, 13200, 18700], 7000, 3750),
+  /* 33 */ simple('chance', 'Chance'),
+  /* 34 */ simple('wealthTax', 'Wealth Tax'),
+  /* 35 */ city('Mumbai', 4, 8500, [1200, 5400, 9600, 14400, 20400], 7000, 4250),
 ]
 
 export const BOARD_SIZE = BOARD.length
+/** Squares along each side between two corners. */
+export const SIDE_TILES = BOARD_SIZE / 4 - 1
 export const START_TILE = 0
-export const JAIL_TILE = 10
-export const DELHI_TILE = 38
+export const JAIL_TILE = 9
+export const DELHI_TILE = 25
 
-/** Group display colours, from the classic printed board: green, lavender, pink and blue families. */
+/** Group display colours, from the classic printed board. */
 export const GROUP_COLORS: Record<CityGroup, { name: string; hex: string }> = {
-  1: { name: 'Lime green', hex: '#6fb83a' },
-  2: { name: 'Forest green', hex: '#1f7a34' },
-  3: { name: 'Lavender', hex: '#9c86d1' },
-  4: { name: 'Pink', hex: '#ec7d9b' },
-  5: { name: 'Sky blue', hex: '#5fb3e6' },
-  6: { name: 'Purple', hex: '#5b3a9e' },
-  7: { name: 'Royal blue', hex: '#1f5fbf' },
-  8: { name: 'Magenta', hex: '#d81b6a' },
+  1: { name: 'Green', hex: '#3f9b3a' },
+  2: { name: 'Lavender', hex: '#8a6fc9' },
+  3: { name: 'Pink', hex: '#e2477f' },
+  4: { name: 'Blue', hex: '#2a86d6' },
 }
+
+/**
+ * Rent multiplier by how many cities of that colour the owner holds (index = count).
+ * You don't need the whole colour to build; owning more of it raises every rent.
+ */
+export const COLOUR_RENT_MULTIPLIER = [1, 1, 1.5, 2, 3] as const
 
 /** Default amounts for special tiles. All of these can be overridden in lobby settings. */
 export const SPECIAL_DEFAULTS = {

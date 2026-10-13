@@ -11,7 +11,7 @@ import {
   type PropertyState,
   type Tile as TileData,
 } from '../../engine'
-import { GRID_TEMPLATE, placement, tileCenter, type Side } from '../boardLayout'
+import { GRID, GRID_TEMPLATE, placement, tileCenter, type Side } from '../boardLayout'
 import { useController } from '../controller'
 import { useAnimatedPositions, type TokenMotion } from '../hooks/useAnimatedPositions'
 import { boardStatus } from '../boardStatus'
@@ -402,7 +402,7 @@ export function Board({
               style={{ gridTemplateColumns: GRID_TEMPLATE, gridTemplateRows: GRID_TEMPLATE }}
             >
               {tiles}
-              <div style={{ gridRow: '2 / 11', gridColumn: '2 / 11' }} className="border-[0.12cqw] border-[#24180f]/80">
+              <div style={{ gridRow: `2 / ${GRID}`, gridColumn: `2 / ${GRID}` }} className="border-[0.12cqw] border-[#24180f]/80">
                 <BoardCenter state={state} showDice={false} />
               </div>
             </div>
@@ -420,7 +420,7 @@ export function Board({
         style={{ gridTemplateColumns: GRID_TEMPLATE, gridTemplateRows: GRID_TEMPLATE }}
       >
         {tiles}
-        <div style={{ gridRow: '2 / 11', gridColumn: '2 / 11' }} className="border-[0.12cqw] border-[#24180f]/80">
+        <div style={{ gridRow: `2 / ${GRID}`, gridColumn: `2 / ${GRID}` }} className="border-[0.12cqw] border-[#24180f]/80">
           <BoardCenter state={state} onDiceClick={onDiceClick} />
         </div>
         <TokenLayer players={state.players} motion={motion} />

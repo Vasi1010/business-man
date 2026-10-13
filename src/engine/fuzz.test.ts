@@ -1,7 +1,7 @@
 declare const process: { env: Record<string, string | undefined> }
 
 import { describe, expect, it } from 'vitest'
-import { OWNABLE_TILES } from './data/board'
+import { BOARD_SIZE, OWNABLE_TILES } from './data/board'
 import { applyAction, initialState } from './engine'
 import { waitingOn } from './rules'
 import { players } from './testUtils'
@@ -86,7 +86,7 @@ function play(seed: number, n: number, settings: Partial<Settings>) {
     for (const p of s.players) {
       expect(p.cash, `cash of ${p.id} at step ${step}`).toBeGreaterThanOrEqual(0)
       expect(p.position).toBeGreaterThanOrEqual(0)
-      expect(p.position).toBeLessThan(40)
+      expect(p.position).toBeLessThan(BOARD_SIZE)
     }
     for (const tile of OWNABLE_TILES) {
       const prop = s.properties[tile]

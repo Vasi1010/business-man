@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { DEFAULT_SETTINGS, MIN_PLAYERS, applyAction, initialState, type Action, type PlayerSetup, type Settings, type TokenId } from '../../engine'
+import { DEFAULT_SETTINGS, MIN_PLAYERS, applyAction, fitsBoard, initialState, type Action, type PlayerSetup, type Settings, type TokenId } from '../../engine'
 import { createRoom, getProfile, joinRoom, removeMember, saveProfile, setLastRoom, type Profile, type RoomState } from '../../net/room'
 import { useRoom } from '../../net/useRoom'
 import { toast } from '../../store/toasts'
@@ -294,7 +294,7 @@ export function OnlineRoom({ code }: { code: string }) {
   const [joining, setJoining] = useState(false)
 
   const controller = useMemo<GameController | null>(() => {
-    if (!row?.state.game || !uid) return null
+    if (!row?.state.game || !uid || !fitsBoard(row.state.game)) return null
     return {
       mode: 'online',
       state: row.state.game,
@@ -345,6 +345,28 @@ export function OnlineRoom({ code }: { code: string }) {
     return (
       <Shell>
         <Centered title="Couldn't connect">{error ?? 'Please check your internet connection.'}</Centered>
+      </Shell>
+    )
+  }
+
+  if (row.state.game && !fitsBoard(row.state.game) && isMember) {
+    const host = uid === row.host
+    return (
+      <Shell code={code}>
+        <Centered title="The board has been updated">
+          This game was started on the old board, so it can't continue.{' '}
+          {host ? 'Start a new round with the same players.' : 'Ask the host to start a new round.'}
+        </Centered>
+        {host && (
+          <Button
+            variant="primary"
+            size="lg"
+            className="mx-auto mt-4 block"
+            onClick={() => void mutate((s) => ({ ...s, status: 'lobby', game: null })).then((err) => err && toast(err, 'error'))}
+          >
+            Back to lobby
+          </Button>
+        )}
       </Shell>
     )
   }

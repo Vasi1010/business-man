@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import {
   DEFAULT_SETTINGS,
+  fitsBoard,
   applyAction,
   initialState,
   type Action,
@@ -58,7 +59,9 @@ export const useLocalGame = create<LocalGameStore>()(
       storage: createJSONStorage(() => localStorage),
       merge: (persisted, current) => {
         const p = persisted as Partial<LocalGameStore> | undefined
-        return { ...current, ...p, settings: { ...DEFAULT_SETTINGS, ...p?.settings } }
+        // Games saved on the old 40-square board can't continue on the new one.
+        const game = p?.game && fitsBoard(p.game) ? p.game : null
+        return { ...current, ...p, game, settings: { ...DEFAULT_SETTINGS, ...p?.settings } }
       },
     },
   ),

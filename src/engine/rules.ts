@@ -1,5 +1,6 @@
 import {
   BOARD,
+  COLOUR_RENT_MULTIPLIER,
   OWNABLE_TILES,
   SPECIAL_DEFAULTS,
   UNMORTGAGE_INTEREST,
@@ -31,6 +32,12 @@ export function ownableTile(index: number): OwnableTile {
   return t
 }
 
+/** False for games saved on an older board layout, which can't continue on this one. */
+export function fitsBoard(s: GameState): boolean {
+  const keys = Object.keys(s.properties ?? {}).map(Number)
+  return keys.length === OWNABLE_TILES.length && OWNABLE_TILES.every((i) => keys.includes(i))
+}
+
 export function findPlayer(s: GameState, id: PlayerId): Player | undefined {
   return s.players.find((p) => p.id === id)
 }
@@ -43,16 +50,11 @@ export function ownedTiles(s: GameState, id: PlayerId): number[] {
   return OWNABLE_TILES.filter((i) => s.properties[i]?.owner === id)
 }
 
-export function ownsWholeGroup(s: GameState, tileIndex: number, ownerId: PlayerId): boolean {
+/** How many cities of this tile's colour the player owns. */
+export function colourCount(s: GameState, tileIndex: number, ownerId: PlayerId): number {
   const t = BOARD[tileIndex]
-  if (t?.kind !== 'city') return false
-  return groupTiles(t.group).every((i) => s.properties[i]?.owner === ownerId)
-}
-
-export function groupHasBuildings(s: GameState, tileIndex: number): boolean {
-  const t = BOARD[tileIndex]
-  if (t?.kind !== 'city') return false
-  return groupTiles(t.group).some((i) => (s.properties[i]?.level ?? 0) > 0)
+  if (t?.kind !== 'city') return 0
+  return groupTiles(t.group).filter((i) => s.properties[i]?.owner === ownerId).length
 }
 
 /** Rent owed when landing on an owned, unmortgaged tile (before multipliers). */
@@ -61,8 +63,7 @@ export function rentFor(s: GameState, tileIndex: number): number {
   if (!prop || prop.owner === null || prop.mortgaged) return 0
   const t = ownableTile(tileIndex)
   if (t.kind === 'city') {
-    if (prop.level > 0) return t.rents[prop.level]
-    return ownsWholeGroup(s, tileIndex, prop.owner) ? t.rents[0] * 2 : t.rents[0]
+    return Math.round(t.rents[prop.level] * COLOUR_RENT_MULTIPLIER[colourCount(s, tileIndex, prop.owner)])
   }
   return s.properties[t.pair]?.owner === prop.owner ? t.pairRent : t.rent
 }

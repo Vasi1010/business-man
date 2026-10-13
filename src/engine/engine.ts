@@ -9,7 +9,6 @@ import {
   JAIL_TILE,
   OWNABLE_TILES,
   TRANSPORT_TILES,
-  groupTiles,
   type Card,
 } from './data/board'
 import { formatMoney as m } from './format'
@@ -22,11 +21,9 @@ import {
   auctionEligible,
   buildingCounts,
   findPlayer,
-  groupHasBuildings,
   liquidationValue,
   ownableTile,
   ownedTiles,
-  ownsWholeGroup,
   ranking,
   rentFor,
   sellBackValue,
@@ -559,11 +556,6 @@ function validateBundle(ctx: Ctx, ownerId: PlayerId, b: TradeBundle): string | n
   if (b.passes > p.jailPasses) return `${p.name} doesn't have enough jail passes`
   for (const i of b.tiles) {
     if (ctx.s.properties[i]?.owner !== ownerId) return `${p.name} doesn't own ${BOARD[i]?.name ?? 'that tile'}`
-    // Built-on cities can be traded, buildings included, but only as a whole colour group,
-    // so the new owner always holds the full group their houses stand on.
-    const t = BOARD[i]
-    if (t.kind === 'city' && groupHasBuildings(ctx.s, i) && !groupTiles(t.group).every((g) => b.tiles.includes(g)))
-      return `${tileName(i)}'s colour group has buildings, so trade the whole group together`
   }
   return null
 }
@@ -785,12 +777,9 @@ function handle(ctx: Ctx, action: Action, actorId: PlayerId) {
       const prop = requireOwnedBy(ctx, action.tile, p.id)
       const t = ownableTile(action.tile)
       if (t.kind !== 'city') fail('You can only build on cities')
-      if (!ownsWholeGroup(s, action.tile, p.id)) fail('You need the whole colour group to build')
-      const group = groupTiles(t.group)
-      if (group.some((i) => s.properties[i].mortgaged)) fail('Unmortgage the colour group before building')
+      // Any city you own can be built on; you don't need the rest of its colour.
+      if (prop.mortgaged) fail(`Unmortgage ${t.name} before building`)
       if (prop.level >= HOTEL_LEVEL) fail(`${t.name} already has a hotel`)
-      const minLevel = Math.min(...group.map((i) => s.properties[i].level))
-      if (prop.level > minLevel) fail('Build evenly across the colour group')
       if (p.cash < t.houseCost) fail(`You need ${m(t.houseCost)} to build`)
       debit(ctx, p, t.houseCost, `building on ${t.name}`)
       prop.level += 1
@@ -803,8 +792,6 @@ function handle(ctx: Ctx, action: Action, actorId: PlayerId) {
       const prop = requireOwnedBy(ctx, action.tile, p.id)
       const t = ownableTile(action.tile)
       if (t.kind !== 'city' || prop.level === 0) fail('No buildings to sell there')
-      const maxLevel = Math.max(...groupTiles(t.group).map((i) => s.properties[i].level))
-      if (prop.level < maxLevel) fail('Sell evenly across the colour group')
       const wasHotel = prop.level === HOTEL_LEVEL
       prop.level -= 1
       const refund = sellBackValue(t)
@@ -818,7 +805,7 @@ function handle(ctx: Ctx, action: Action, actorId: PlayerId) {
       const prop = requireOwnedBy(ctx, action.tile, p.id)
       const t = ownableTile(action.tile)
       if (prop.mortgaged) fail(`${t.name} is already mortgaged`)
-      if (groupHasBuildings(s, action.tile)) fail('Sell the buildings in this colour group first')
+      if (prop.level > 0) fail(`Sell the buildings on ${t.name} first`)
       prop.mortgaged = true
       credit(ctx, p, t.mortgage, `mortgaged ${t.name}`)
       log(ctx, `${p.name} mortgaged ${t.name} for ${m(t.mortgage)}.`)

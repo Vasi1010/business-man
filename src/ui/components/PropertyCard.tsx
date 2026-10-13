@@ -2,6 +2,7 @@ import {
   BOARD,
   CHANCE,
   CHEST,
+  COLOUR_RENT_MULTIPLIER,
   GROUP_COLORS,
   HOTEL_LEVEL,
   formatMoney,
@@ -71,7 +72,6 @@ export function PropertyCard({ tile, onClose }: { tile: number | null; onClose: 
               {t.kind === 'city' ? (
                 <>
                   <Row label="Site" value={t.rents[0]} active={prop.owner !== null && prop.level === 0} />
-                  <Row label="Site, whole group owned" value={t.rents[0] * 2} />
                   <Row label="1 house" value={t.rents[1]} active={prop.level === 1} />
                   <Row label="2 houses" value={t.rents[2]} active={prop.level === 2} />
                   <Row label="3 houses" value={t.rents[3]} active={prop.level === 3} />
@@ -85,6 +85,18 @@ export function PropertyCard({ tile, onClose }: { tile: number | null; onClose: 
               )}
             </tbody>
           </table>
+          {t.kind === 'city' && (
+            <p className="mt-2 text-xs text-muted">
+              Own more {GROUP_COLORS[t.group].name.toLowerCase()} cities and every rent goes up: ×{COLOUR_RENT_MULTIPLIER[2]} with 2, ×
+              {COLOUR_RENT_MULTIPLIER[3]} with 3, ×{COLOUR_RENT_MULTIPLIER[4]} with all 4.
+              {prop.owner !== null && !prop.mortgaged && (
+                <>
+                  {' '}
+                  Rent here now: <strong className="text-ink">{formatMoney(rentFor(s, tile))}</strong>.
+                </>
+              )}
+            </p>
+          )}
           <div className="mt-3 rounded-xl bg-paper-2 p-3 text-sm">
             {owner ? (
               <div className="flex items-center gap-2">

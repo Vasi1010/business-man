@@ -4,8 +4,6 @@ import {
   GROUP_COLORS,
   formatMoney,
   HOTEL_LEVEL,
-  groupHasBuildings,
-  groupTiles,
   isLegal,
   ownedTiles,
   type Action,
@@ -54,14 +52,9 @@ function BundleEditor({
     <fieldset className="min-w-0 flex-1 rounded-2xl border border-line p-3">
       <legend className="px-1 text-sm font-semibold">{title}</legend>
       {tiles.length === 0 && <p className="text-sm text-muted">No properties.</p>}
-      {tiles.some((i) => groupHasBuildings(s, i)) && (
-        <p className="mb-1 text-xs text-muted">Cities with houses or hotels go with their buildings, as a whole colour group.</p>
-      )}
+      {tiles.some((i) => s.properties[i].level > 0) && <p className="mb-1 text-xs text-muted">Cities with houses or hotels are traded with their buildings.</p>}
       <ul className="max-h-48 space-y-1 overflow-y-auto">
         {tiles.map((i) => {
-          const built = groupHasBuildings(s, i)
-          const t = BOARD[i]
-          const group = t.kind === 'city' && built ? groupTiles(t.group).filter((g) => s.properties[g].owner === ownerId) : [i]
           const level = s.properties[i].level
           const checked = bundle.tiles.includes(i)
           return (
@@ -73,7 +66,7 @@ function BundleEditor({
                   onChange={() =>
                     onChange({
                       ...bundle,
-                      tiles: checked ? bundle.tiles.filter((x) => !group.includes(x)) : [...new Set([...bundle.tiles, ...group])],
+                      tiles: checked ? bundle.tiles.filter((x) => x !== i) : [...bundle.tiles, i],
                     })
                   }
                   className="h-4 w-4 accent-[var(--brand)]"

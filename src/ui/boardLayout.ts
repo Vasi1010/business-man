@@ -1,4 +1,6 @@
-/** Where each of the 40 tiles sits on the 11×11 grid (Start bottom-right, moving clockwise). */
+import { SIDE_TILES } from '../engine'
+
+/** Where each tile sits on the square grid (Start bottom-right, moving clockwise). */
 
 export type Side = 'bottom' | 'left' | 'top' | 'right' | 'corner'
 
@@ -8,23 +10,27 @@ export interface TilePlacement {
   side: Side
 }
 
+/** Grid lines per side: two corners plus the tiles between them. */
+export const GRID = SIDE_TILES + 2
 export const CORNER = 1.55 // corner size in "tile widths"
-const TOTAL = CORNER * 2 + 9
+const TOTAL = CORNER * 2 + SIDE_TILES
+const S = SIDE_TILES + 1 // tiles from one corner to the next
 
 export function placement(i: number): TilePlacement {
-  if (i === 0) return { row: 11, col: 11, side: 'corner' }
-  if (i < 10) return { row: 11, col: 11 - i, side: 'bottom' }
-  if (i === 10) return { row: 11, col: 1, side: 'corner' }
-  if (i < 20) return { row: 11 - (i - 10), col: 1, side: 'left' }
-  if (i === 20) return { row: 1, col: 1, side: 'corner' }
-  if (i < 30) return { row: 1, col: 1 + (i - 20), side: 'top' }
-  if (i === 30) return { row: 1, col: 11, side: 'corner' }
-  return { row: 1 + (i - 30), col: 11, side: 'right' }
+  if (i === 0) return { row: GRID, col: GRID, side: 'corner' }
+  if (i < S) return { row: GRID, col: GRID - i, side: 'bottom' }
+  if (i === S) return { row: GRID, col: 1, side: 'corner' }
+  if (i < 2 * S) return { row: GRID - (i - S), col: 1, side: 'left' }
+  if (i === 2 * S) return { row: 1, col: 1, side: 'corner' }
+  if (i < 3 * S) return { row: 1, col: 1 + (i - 2 * S), side: 'top' }
+  if (i === 3 * S) return { row: 1, col: GRID, side: 'corner' }
+  return { row: 1 + (i - 3 * S), col: GRID, side: 'right' }
 }
 
-function span(n: number): [number, number] {
+/** Start and end of a grid row/column, in tile widths. */
+export function span(n: number): [number, number] {
   if (n === 1) return [0, CORNER]
-  if (n === 11) return [CORNER + 9, TOTAL]
+  if (n === GRID) return [CORNER + SIDE_TILES, TOTAL]
   return [CORNER + (n - 2), CORNER + (n - 1)]
 }
 
@@ -36,4 +42,4 @@ export function tileCenter(i: number): { x: number; y: number } {
   return { x: (((x0 + x1) / 2) / TOTAL) * 100, y: (((y0 + y1) / 2) / TOTAL) * 100 }
 }
 
-export const GRID_TEMPLATE = `${CORNER}fr repeat(9, 1fr) ${CORNER}fr`
+export const GRID_TEMPLATE = `${CORNER}fr repeat(${SIDE_TILES}, 1fr) ${CORNER}fr`

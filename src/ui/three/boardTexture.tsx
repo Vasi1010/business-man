@@ -1,10 +1,10 @@
 import { renderToStaticMarkup } from 'react-dom/server'
-import { BOARD, GROUP_COLORS, groupIndian, type GameState, type ServiceTile, type SimpleTileKind } from '../../engine'
-import { CORNER, placement } from '../boardLayout'
+import { BOARD, GROUP_COLORS, SIDE_TILES, groupIndian, type GameState, type ServiceTile, type SimpleTileKind } from '../../engine'
+import { CORNER, placement, span } from '../boardLayout'
 import { TileIcon } from '../components/Art'
 import { CORNER_STYLE, PRINT, RAINBOW, tint } from '../printStyle'
 
-export const TOTAL = CORNER * 2 + 9
+export const TOTAL = CORNER * 2 + SIDE_TILES
 
 type IconKind = ServiceTile['icon'] | SimpleTileKind
 const ICONS: IconKind[] = ['train', 'bus', 'plane', 'boat', 'bulb', 'tap', 'chance', 'chest', 'incomeTax', 'wealthTax', 'club', 'restHouse', 'jail', 'start']
@@ -30,10 +30,13 @@ export function loadIcons(): Promise<Map<IconKind, HTMLImageElement>> {
   return iconCache
 }
 
-function span(n: number): [number, number] {
-  if (n === 1) return [0, CORNER]
-  if (n === 11) return [CORNER + 9, TOTAL]
-  return [CORNER + (n - 2), CORNER + (n - 1)]
+/** Draw text at the largest size up to maxSize that fits maxWidth. */
+function fitText(g: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, maxSize: number, weight = 800) {
+  g.font = `${weight} ${maxSize}px Mukta, "Arial Black", sans-serif`
+  const width = g.measureText(text).width
+  const size = width > maxWidth ? (maxSize * maxWidth) / width : maxSize
+  g.font = `${weight} ${size}px Mukta, "Arial Black", sans-serif`
+  g.fillText(text, x, y)
 }
 
 function pinwheel(g: CanvasRenderingContext2D, cx: number, cy: number, r: number, turn = 0) {
@@ -108,7 +111,7 @@ function printedCard(g: CanvasRenderingContext2D, x: number, y: number, w: numbe
 
 function centre(g: CanvasRenderingContext2D, size: number, k: number) {
   const c0 = CORNER * k
-  const c1 = (CORNER + 9) * k
+  const c1 = (CORNER + SIDE_TILES) * k
   const w = c1 - c0
   const grad = g.createRadialGradient(size / 2, size / 2, w * 0.05, size / 2, size / 2, w * 0.72)
   grad.addColorStop(0, '#3463dc')
@@ -200,78 +203,106 @@ export function drawBoard(s: GameState, icons: Map<IconKind, HTMLImageElement>, 
       g.restore()
     }
 
-    g.save()
-    g.translate(x + w / 2, y + h / 2)
-    // Text reads from outside the board, like a printed board.
-    const rot = side === 'bottom' ? 0 : side === 'left' ? Math.PI / 2 : side === 'top' ? Math.PI : side === 'right' ? -Math.PI / 2 : 0
-    // Corner art sits diagonally, readable from its own corner.
-    const cornerRot = (row === 11) === (col === 11) ? -Math.PI / 4 : Math.PI / 4
-    g.rotate(corner ? cornerRot + (row === 1 ? Math.PI : 0) : rot)
-    const tw = side === 'left' || side === 'right' ? h : w
-    const th = side === 'left' || side === 'right' ? w : h
+    // All text stands upright, facing the near (bottom) edge where the camera sits.
     g.textAlign = 'center'
     g.textBaseline = 'middle'
 
     if (corner) {
+      const cx = x + w / 2
+      const cy = y + h / 2
       const icon = icons.get(tile.kind as IconKind)
-      if (icon) g.drawImage(icon, -k * 0.5, -k * 0.8, k * 1.0, k * 1.0)
-      banner(g, corner.label, k * 0.34, k * 1.3, k * 0.24)
-      g.fillStyle = PRINT.muted
-      g.font = `700 ${k * 0.14}px Mukta, sans-serif`
-      g.fillText(tile.kind === 'start' ? `COLLECT ₹${groupIndian(s.settings.startSalary)}` : corner.sub.toUpperCase(), 0, k * 0.68, k * 1.5)
-    } else if (card) {
-      const lines = tile.kind === 'chance' ? ['CHANCE'] : ['COMMUNITY', 'CHEST']
-      lines.forEach((text, j) => {
-        const ly = (j - (lines.length - 1) / 2) * k * 0.3
-        g.fillStyle = 'rgba(255,255,255,.95)'
-        g.beginPath()
-        g.roundRect(-tw * 0.44, ly - k * 0.13, tw * 0.88, k * 0.26, k * 0.05)
-        g.fill()
-        g.fillStyle = PRINT.redDark
-        g.font = `800 ${k * 0.15}px Mukta, sans-serif`
-        g.fillText(text, 0, ly + k * 0.01, tw * 0.82)
-      })
-    } else {
-      if (tile.kind === 'city') {
-        const band = th * 0.24
-        g.fillStyle = GROUP_COLORS[tile.group].hex
-        g.fillRect(-tw / 2, -th / 2, tw, band)
-        g.fillStyle = PRINT.line
-        g.fillRect(-tw / 2, -th / 2 + band - k * 0.02, tw, k * 0.02)
-      } else {
-        const icon = icons.get((tile.kind === 'service' ? tile.icon : tile.kind) as IconKind)
-        if (icon) g.drawImage(icon, -k * 0.24, -th * 0.4, k * 0.48, k * 0.48)
-      }
-      const name = tile.name.toUpperCase()
-      const words = name.length > 9 && name.includes(' ') ? name.split(' ') : [name]
-      const fs = k * (words.some((wd) => wd.length > 9) ? 0.14 : 0.165)
+      if (icon) g.drawImage(icon, cx - k * 0.33, cy - k * 0.62, k * 0.66, k * 0.66)
+      g.save()
+      g.translate(cx, cy)
+      banner(g, corner.label, k * 0.22, k * 1.15, k * 0.28)
       g.fillStyle = PRINT.ink
-      g.font = `800 ${fs}px Mukta, "Arial Black", sans-serif`
-      const baseY = tile.kind === 'city' ? -th * 0.03 : th * 0.1
-      words.forEach((wd, j) => g.fillText(wd, 0, baseY + (j - (words.length - 1) / 2) * fs * 1.05, tw * 0.9))
-      const price =
-        tile.kind === 'city' || tile.kind === 'service'
-          ? `₹${groupIndian(tile.price)}`
-          : tile.kind === 'incomeTax'
-            ? `PAY ₹${groupIndian(s.settings.incomeTax)}`
-            : tile.kind === 'wealthTax'
-              ? 'ON BUILDINGS'
-              : ''
-      if (price) {
-        const py = th * 0.34
-        g.fillStyle = '#fff'
-        g.strokeStyle = 'rgba(36,24,15,.55)'
-        g.lineWidth = k * 0.012
-        g.beginPath()
-        g.roundRect(-tw * 0.42, py - k * 0.12, tw * 0.84, k * 0.24, k * 0.04)
-        g.fill()
-        g.stroke()
-        g.fillStyle = PRINT.redDark
-        g.font = `700 ${k * 0.135}px Mukta, sans-serif`
-        g.fillText(price, 0, py + k * 0.005, tw * 0.8)
+      fitText(g, tile.kind === 'start' ? `COLLECT ₹${groupIndian(s.settings.startSalary)}` : corner.sub.toUpperCase(), 0, k * 0.5, w * 0.78, k * 0.15, 700)
+      g.restore()
+    } else {
+      // Inner edge carries the colour band; the rest holds the label.
+      const bandSize = (side === 'left' || side === 'right' ? w : h) * 0.24
+      let [cx0, cy0, cw, ch] = [x, y, w, h]
+      if (tile.kind === 'city') {
+        g.fillStyle = GROUP_COLORS[tile.group].hex
+        const band: [number, number, number, number] =
+          side === 'bottom' ? [x, y, w, bandSize] : side === 'top' ? [x, y + h - bandSize, w, bandSize] : side === 'left' ? [x + w - bandSize, y, bandSize, h] : [x, y, bandSize, h]
+        g.fillRect(...band)
+        if (side === 'bottom') [cy0, ch] = [y + bandSize, h - bandSize]
+        else if (side === 'top') ch = h - bandSize
+        else if (side === 'left') cw = w - bandSize
+        else [cx0, cw] = [x + bandSize, w - bandSize]
+      }
+      // Keep clear of the printed border on the outer edge.
+      const edge = k * 0.11
+      if (side === 'bottom') ch -= edge
+      else if (side === 'top') [cy0, ch] = [cy0 + edge, ch - edge]
+      else if (side === 'left') [cx0, cw] = [cx0 + edge, cw - edge]
+      else cw -= edge
+      const cx = cx0 + cw / 2
+      const cy = cy0 + ch / 2
+
+      if (card) {
+        const lines = tile.kind === 'chance' ? ['CHANCE'] : ['COMMUNITY', 'CHEST']
+        lines.forEach((text, j) => {
+          const ly = cy + (j - (lines.length - 1) / 2) * k * 0.32
+          g.fillStyle = 'rgba(255,255,255,.95)'
+          g.beginPath()
+          g.roundRect(cx - cw * 0.45, ly - k * 0.14, cw * 0.9, k * 0.28, k * 0.05)
+          g.fill()
+          g.fillStyle = PRINT.redDark
+          fitText(g, text, cx, ly + k * 0.01, cw * 0.84, k * 0.2)
+        })
+      } else {
+        const price =
+          tile.kind === 'city' || tile.kind === 'service'
+            ? `₹${groupIndian(tile.price)}`
+            : tile.kind === 'incomeTax'
+              ? `PAY ₹${groupIndian(s.settings.incomeTax)}`
+              : tile.kind === 'wealthTax'
+                ? 'ON BUILDINGS'
+                : ''
+        const icon = tile.kind === 'city' ? undefined : icons.get((tile.kind === 'service' ? tile.icon : tile.kind) as IconKind)
+        const wide = cw > ch
+        const words = tile.name.toUpperCase().split(' ')
+        // Wide side squares fit names on one line; narrow ones split long names in two.
+        const lines =
+          !wide && words.length > 1 && tile.name.length > 9
+            ? [words.slice(0, Math.ceil(words.length / 2)).join(' '), words.slice(Math.ceil(words.length / 2)).join(' ')]
+            : [tile.name.toUpperCase()]
+        // Stack: [icon] name, price, centred in the label area and shrunk to fit its height.
+        let iconSize = k * 0.4
+        let nameSize = k * 0.24
+        let priceH = k * 0.27
+        const stackH = () => (icon ? iconSize + k * 0.04 : 0) + lines.length * nameSize * 1.02 + (price ? priceH + k * 0.06 : 0)
+        const fit = Math.min(1, (ch * 0.9) / stackH())
+        iconSize *= fit
+        nameSize *= fit
+        priceH *= fit
+        const blockH = stackH()
+        let top = cy - blockH / 2
+        if (icon) {
+          g.drawImage(icon, cx - iconSize / 2, top, iconSize, iconSize)
+          top += iconSize + k * 0.04
+        }
+        g.fillStyle = PRINT.ink
+        for (const line of lines) {
+          fitText(g, line, cx, top + nameSize / 2, cw * 0.92, nameSize)
+          top += nameSize * 1.02
+        }
+        if (price) {
+          top += k * 0.06
+          g.fillStyle = '#fff'
+          g.strokeStyle = 'rgba(36,24,15,.55)'
+          g.lineWidth = k * 0.012
+          g.beginPath()
+          g.roundRect(cx - cw * 0.44, top, cw * 0.88, priceH, k * 0.05)
+          g.fill()
+          g.stroke()
+          g.fillStyle = PRINT.redDark
+          fitText(g, price, cx, top + priceH / 2 + k * 0.01, cw * 0.82, priceH * 0.74, 700)
+        }
       }
     }
-    g.restore()
 
     g.strokeStyle = PRINT.line
     g.lineWidth = k * 0.022
