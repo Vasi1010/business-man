@@ -189,7 +189,7 @@ export function drawBoard(s: GameState, icons: Map<IconKind, HTMLImageElement>, 
     const corner = side === 'corner' ? CORNER_STYLE[tile.kind] : undefined
     const card = tile.kind === 'chance' || tile.kind === 'chest'
 
-    g.fillStyle = corner ? corner.bg : tile.kind === 'city' ? tint(GROUP_COLORS[tile.group].hex, 0.2) : PRINT.tile
+    g.fillStyle = corner ? corner.bg : tile.kind === 'city' ? tint(GROUP_COLORS[tile.group].hex, 0.42) : PRINT.tile
     g.fillRect(x, y, w, h)
     if (card) {
       g.save()

@@ -68,7 +68,7 @@ describe('movement and Start', () => {
 
   it('uses the Start salary setting', () => {
     let s = arrange(game(3, { startSalary: 2000 }), (d) => place(d, 'a', 35))
-    s = roll(s, 'a', 6) // 35 -> 1 Chandigarh
+    s = roll(s, 'a', 6) // 35 -> 1 Agra
     expect(cash(s, 'a')).toBe(START_CASH + 2000)
   })
 
@@ -81,7 +81,7 @@ describe('movement and Start', () => {
 
   it('cannot roll twice without doubles, and ends the turn', () => {
     let s = roll(game(3, { auctions: true }), 'a', 5)
-    expect(s.turn.phase).toBe('buy') // Railways
+    expect(s.turn.phase).toBe('buy') // Railway
     s = act(s, { type: 'decline', now: NOW }, 'a')
     s = act(s, { type: 'passAuction' }, 'a')
     s = act(s, { type: 'passAuction' }, 'b')
@@ -103,7 +103,7 @@ describe('first-lap rule', () => {
 
   it('blocks buying before passing Start', () => {
     let s = game(3, { firstLapRule: true }, { lapped: false })
-    s = roll(s, 'a', 9) // Amritsar
+    s = roll(s, 'a', 9) // Jaipur
     expect(s.turn.phase).toBe('end')
     expect(s.turn.pendingTile).toBeNull()
     expect(s.properties[9].owner).toBeNull()
@@ -111,7 +111,7 @@ describe('first-lap rule', () => {
 
   it('allows buying after passing Start', () => {
     let s = arrange(game(3, { firstLapRule: true }, { lapped: false }), (d) => place(d, 'a', 35))
-    s = roll(s, 'a', 6) // passes Start, lands on Chandigarh
+    s = roll(s, 'a', 6) // passes Start, lands on Agra
     expect(s.turn.phase).toBe('buy')
     s = act(s, { type: 'buy' }, 'a')
     expect(s.properties[1].owner).toBe('a')
@@ -206,15 +206,15 @@ describe('rent', () => {
   })
 
   it('charges paired service rent', () => {
-    // Railways alone
+    // Railway alone
     let s = arrange(game(), (d) => own(d, 'b', 5))
     s = roll(s, 'a', 5)
     expect(cash(s, 'a')).toBe(START_CASH - 1100)
-    // Railways with City Bus
+    // Railway with B.E.S.T. Bus
     s = arrange(game(), (d) => own(d, 'b', 5, 15))
     s = roll(s, 'a', 5)
     expect(cash(s, 'a')).toBe(START_CASH - 2200)
-    // City Bus with Railways
+    // B.E.S.T. Bus with Railway
     s = arrange(game(), (d) => {
       own(d, 'b', 5, 15)
       place(d, 'a', 10)
@@ -568,7 +568,7 @@ describe('Chance (decided by dice total, landing on tile 22)', () => {
     expect(cash(s, 'a')).toBe(START_CASH - 2400)
     expect(cash(s, 'b')).toBe(START_CASH + 2400)
   })
-  it('5: from Chance on 36 wraps to Railways and pays salary', () => {
+  it('5: from Chance on 36 wraps to Railway and pays salary', () => {
     let s = arrange(game(3), (d) => place(d, 'a', 31))
     s = act(s, { type: 'roll', dice: [2, 3] }, 'a')
     expect(player(s, 'a').position).toBe(5)

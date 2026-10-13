@@ -26,11 +26,13 @@ const SOFT_NAMES: Record<string, string> = {
   Darjeeling: 'Darjee­ling',
   Hyderabad: 'Hydera­bad',
   Ahmedabad: 'Ahmeda­bad',
-  Bengaluru: 'Benga­luru',
+  Bangalore: 'Banga­lore',
   Amritsar: 'Amrit­sar',
   Srinagar: 'Srina­gar',
+  Calcutta: 'Cal­cutta',
+  Ludhiana: 'Ludhi­ana',
   Lucknow: 'Luck­now',
-  Railways: 'Rail­ways',
+  Railway: 'Rail­way',
 }
 
 const bandLayout: Record<Exclude<Side, 'corner'>, { flex: string; band: string }> = {
@@ -89,7 +91,7 @@ const Tile = memo(function Tile({ index, prop, owner, highlight, salary, onClick
     gridRow: row,
     gridColumn: col,
     boxShadow: owner ? `inset 0 0 0 0.45cqw ${owner.color}` : undefined,
-    background: corner ? corner.bg : isCity ? tint(GROUP_COLORS[tile.group].hex, 0.2) : isCard ? RAINBOW_BG : PRINT.tile,
+    background: corner ? corner.bg : isCity ? tint(GROUP_COLORS[tile.group].hex, 0.42) : isCard ? RAINBOW_BG : PRINT.tile,
   }
   const base = `relative overflow-hidden border-[0.12cqw] border-[#24180f]/80 text-[#1b1410] transition hover:brightness-95 focus-visible:z-10 ${highlight ? 'turn-pulse z-[5]' : ''}`
 
