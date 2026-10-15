@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { applyAction, initialState, type Action, type GameState } from '../../engine'
+import { BOARD, applyAction, initialState, type Action, type GameState } from '../../engine'
 import type { GameController } from '../controller'
 import { arrivalDelay } from '../hooks/useAnimatedPositions'
 import { PLAYER_COLORS } from '../tokens'
@@ -16,18 +16,19 @@ function demoState(): GameState {
     { startingCash: 60000 },
     { now: Date.now() },
   )
-  const own = (id: string, tiles: number[], level = 0) =>
-    tiles.forEach((t) => {
-      s.properties[t].owner = id
-      s.properties[t].level = level
+  const at = (name: string) => BOARD.findIndex((t) => t.name === name)
+  const own = (id: string, names: string[], level = 0) =>
+    names.forEach((n) => {
+      s.properties[at(n)].owner = id
+      s.properties[at(n)].level = level
     })
-  own('a', [1, 3], 4)
-  own('b', [38, 39], 2)
-  own('c', [21, 23, 24], 1)
-  own('d', [5, 15])
-  own('a', [12])
-  s.properties[28].owner = 'c'
-  s.properties[28].mortgaged = true
+  own('a', ['Agra', 'Kanpur'], 4)
+  own('b', ['Delhi', 'Chandigarh'], 2)
+  own('c', ['Darjeeling', 'Calcutta', 'Hyderabad'], 1)
+  own('d', ['Railway', 'B.E.S.T. Bus'])
+  own('a', ['Electric Company'])
+  own('c', ['Water Works'])
+  s.properties[at('Water Works')].mortgaged = true
   s.players[1].position = 7
   s.players[2].position = 18
   s.players[3].position = 26

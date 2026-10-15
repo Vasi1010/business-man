@@ -1,6 +1,6 @@
 import { ContactShadows, Environment, Html, Lightformer, OrbitControls, RoundedBox } from '@react-three/drei'
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import * as THREE from 'three'
 import { BOARD, HOTEL_LEVEL, groupIndian, type GameState, type Player } from '../../engine'
 import { useMoneyFx } from '../../store/moneyFx'
@@ -26,6 +26,69 @@ function canvasTexture(cv: HTMLCanvasElement, repeat = 1) {
     t.repeat.set(repeat, repeat)
   }
   return t
+}
+
+/* -------------------------------- quality ------------------------------- */
+
+/**
+ * Battery saver: redraw only when something changes (dice, pawns, buildings, camera)
+ * instead of 60 times a second, at lower resolution, with cheaper materials and shadows.
+ */
+const SaverContext = createContext(false)
+const useSaver = () => useContext(SaverContext)
+
+/** Ask for one more frame. In always-redraw mode this is a no-op. */
+function useInvalidate() {
+  return useThree((s) => s.invalidate)
+}
+
+/** Glossy lacquer; plain standard material in battery saver. */
+function Lacquer({
+  clearcoat = 0.6,
+  clearcoatRoughness = 0.15,
+  sheen,
+  ...props
+}: {
+  color: string
+  roughness: number
+  clearcoat?: number
+  clearcoatRoughness?: number
+  sheen?: number
+  map?: THREE.Texture
+  metalness?: number
+  emissive?: string
+  emissiveIntensity?: number
+}) {
+  return useSaver() ? (
+    <meshStandardMaterial {...props} />
+  ) : (
+    <meshPhysicalMaterial {...props} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} sheen={sheen} />
+  )
+}
+
+/** Counts frames actually drawn, reported once a second. */
+function FrameCounter({ onRate }: { onRate: (perSecond: number) => void }) {
+  const count = useRef(0)
+  useFrame(() => {
+    count.current++
+  })
+  useEffect(() => {
+    const id = setInterval(() => {
+      onRate(count.current)
+      count.current = 0
+    }, 1000)
+    return () => clearInterval(id)
+  }, [onRate])
+  return null
+}
+
+/** Redraw once whenever `value` changes (state updates, money tags...). */
+function RedrawOn({ value }: { value: unknown }) {
+  const invalidate = useInvalidate()
+  useEffect(() => {
+    invalidate()
+  }, [value, invalidate])
+  return null
 }
 
 /* --------------------------------- board -------------------------------- */
@@ -75,7 +138,7 @@ function BoardMesh({ state, onTile }: { state: GameState; onTile: (i: number) =>
     <group>
       {/* Lacquered wooden frame */}
       <RoundedBox args={[SIZE + 0.9, 0.42, SIZE + 0.9]} radius={0.16} smoothness={5} position={[0, -0.2, 0]} castShadow receiveShadow>
-        <meshPhysicalMaterial map={frameWood} color="#a0603a" roughness={0.38} clearcoat={0.8} clearcoatRoughness={0.25} />
+        <Lacquer map={frameWood} color="#a0603a" roughness={0.38} clearcoat={0.8} clearcoatRoughness={0.25} />
       </RoundedBox>
       {/* Printed board face */}
       <mesh rotation-x={-Math.PI / 2} position={[0, 0.012, 0]} receiveShadow onClick={click}>
@@ -100,9 +163,11 @@ function Table() {
 /** Soft pulsing glow on the tile the current player must decide about. */
 function Highlight({ tile }: { tile: number | null }) {
   const ref = useRef<THREE.Mesh>(null)
+  const saver = useSaver()
   useFrame(({ clock }) => {
     const m = ref.current?.material as THREE.MeshBasicMaterial | undefined
-    if (m) m.opacity = 0.18 + Math.sin(clock.elapsedTime * 4) * 0.1
+    // Battery saver keeps a steady glow so the scene can rest between moves.
+    if (m) m.opacity = saver ? 0.28 : 0.18 + Math.sin(clock.elapsedTime * 4) * 0.1
   })
   if (tile === null) return null
   const { side } = placement(tile)
@@ -135,10 +200,10 @@ function House({ position, rotation }: { position: [number, number, number]; rot
   return (
     <group position={position} rotation-y={rotation}>
       <RoundedBox args={[0.2, 0.15, 0.18]} radius={0.015} position={[0, 0.075, 0]} castShadow>
-        <meshPhysicalMaterial color="#3f9a45" roughness={0.35} clearcoat={0.6} />
+        <Lacquer color="#3f9a45" roughness={0.35} clearcoat={0.6} />
       </RoundedBox>
       <mesh geometry={roof} position={[0, 0.15, 0]} castShadow>
-        <meshPhysicalMaterial color="#246b2c" roughness={0.4} clearcoat={0.5} />
+        <Lacquer color="#246b2c" roughness={0.4} clearcoat={0.5} />
       </mesh>
     </group>
   )
@@ -149,7 +214,7 @@ function Hotel({ position, rotation }: { position: [number, number, number]; rot
   return (
     <group position={position} rotation-y={rotation}>
       <RoundedBox args={[0.46, 0.26, 0.24]} radius={0.02} position={[0, 0.13, 0]} castShadow>
-        <meshPhysicalMaterial color="#c8352a" roughness={0.32} clearcoat={0.7} />
+        <Lacquer color="#c8352a" roughness={0.32} clearcoat={0.7} />
       </RoundedBox>
       {[-0.13, 0, 0.13].map((x) => (
         <mesh key={x} position={[x, 0.15, 0.121]}>
@@ -158,7 +223,7 @@ function Hotel({ position, rotation }: { position: [number, number, number]; rot
         </mesh>
       ))}
       <mesh geometry={roof} position={[0, 0.26, 0]} castShadow>
-        <meshPhysicalMaterial color="#8e2219" roughness={0.4} clearcoat={0.5} />
+        <Lacquer color="#8e2219" roughness={0.4} clearcoat={0.5} />
       </mesh>
     </group>
   )
@@ -228,20 +293,29 @@ const OFFSETS: [number, number][] = [
   [0, 1.6],
 ]
 
+const MARKER_SECONDS = 2.5
+
 /** Gold marker bobbing over the pawn whose turn it is. */
 function TurnMarker() {
   const ref = useRef<THREE.Group>(null)
-  useFrame(({ clock }) => {
+  const saver = useSaver()
+  const startedAt = useRef(-1)
+  useFrame(({ clock, invalidate }) => {
     const g = ref.current
     if (!g) return
-    g.position.y = 1.2 + Math.sin(clock.elapsedTime * 3) * 0.07
-    g.rotation.y = clock.elapsedTime * 1.6
+    if (startedAt.current < 0) startedAt.current = clock.elapsedTime
+    const age = clock.elapsedTime - startedAt.current
+    // Battery saver: bob for a moment when the turn starts, then hold still.
+    if (saver && age > MARKER_SECONDS) return
+    g.position.y = 1.2 + Math.sin(age * 3) * 0.07
+    g.rotation.y = age * 1.6
+    if (saver) invalidate()
   })
   return (
     <group ref={ref} position={[0, 1.2, 0]}>
       <mesh rotation-x={Math.PI}>
         <coneGeometry args={[0.13, 0.24, 4]} />
-        <meshPhysicalMaterial color="#f4c21b" metalness={0.6} roughness={0.25} emissive="#7a5a00" emissiveIntensity={0.4} />
+        <Lacquer color="#f4c21b" metalness={0.6} roughness={0.25} emissive="#7a5a00" emissiveIntensity={0.4} clearcoat={0} />
       </mesh>
     </group>
   )
@@ -264,8 +338,14 @@ function Pawn({ player, target, stepMs, active }: { player: Player; target: [num
   const ref = useRef<THREE.Group>(null)
   const anim = useRef({ from: target, to: target, start: -1 })
   const geometry = useMemo(() => new THREE.LatheGeometry(PAWN_PROFILE, 48), [])
+  // Placed once; after that the frame loop moves it, so it glides instead of snapping.
+  const [initial] = useState(target)
+  const invalidate = useInvalidate()
+  useEffect(() => {
+    invalidate()
+  }, [target[0], target[1], invalidate]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock, invalidate }) => {
     const g = ref.current
     if (!g) return
     const a = anim.current
@@ -283,12 +363,13 @@ function Pawn({ player, target, stepMs, active }: { player: Player; target: [num
     // Squash slightly on landing.
     const squash = t < 1 && t > 0.85 ? 1 - (1 - (t - 0.85) / 0.15) * 0.08 : 1
     g.scale.set(1 / Math.sqrt(squash), squash, 1 / Math.sqrt(squash))
+    if (t < 1) invalidate()
   })
 
   return (
-    <group ref={ref} position={[target[0], 0.012, target[1]]}>
+    <group ref={ref} position={[initial[0], 0.012, initial[1]]}>
       <mesh geometry={geometry} castShadow scale={1.1}>
-        <meshPhysicalMaterial color={player.color} roughness={0.22} clearcoat={1} clearcoatRoughness={0.1} sheen={0.3} />
+        <Lacquer color={player.color} roughness={0.22} clearcoat={1} clearcoatRoughness={0.1} sheen={0.3} />
       </mesh>
       {player.inJail && (
         <mesh position={[0, 0.62, 0]} rotation-x={Math.PI / 2}>
@@ -375,7 +456,11 @@ const PIPS = (() => {
 function Die({ value, rollKey, x, onClick }: { value: number; rollKey: number; x: number; onClick?: () => void }) {
   const ref = useRef<THREE.Group>(null)
   const anim = useRef({ key: rollKey, start: -1 })
-  useFrame(({ clock }) => {
+  const invalidate = useInvalidate()
+  useEffect(() => {
+    invalidate()
+  }, [rollKey, value, invalidate])
+  useFrame(({ clock, invalidate }) => {
     const m = ref.current
     if (!m) return
     const now = clock.elapsedTime
@@ -390,6 +475,7 @@ function Die({ value, rollKey, x, onClick }: { value: number; rollKey: number; x
     m.rotation.set(rx + spin, ry + spin * 0.7, rz + spin * 0.4)
     m.position.y = DIE / 2 + 0.012 + Math.abs(Math.sin(t * Math.PI * 2.5)) * (1 - t) ** 1.5 * 1.3
     m.position.x = x + (1 - t) * x * 1.5
+    if (t < 1) invalidate()
   })
   return (
     <group
@@ -403,7 +489,7 @@ function Die({ value, rollKey, x, onClick }: { value: number; rollKey: number; x
       onPointerOut={() => (document.body.style.cursor = '')}
     >
       <RoundedBox args={[DIE, DIE, DIE]} radius={0.07} smoothness={6} castShadow>
-        <meshPhysicalMaterial color="#fffaf0" roughness={0.25} clearcoat={1} clearcoatRoughness={0.1} />
+        <Lacquer color="#fffaf0" roughness={0.25} clearcoat={1} clearcoatRoughness={0.1} />
       </RoundedBox>
       {PIPS.map((p, i) => (
         <mesh key={i} position={p.pos}>
@@ -419,7 +505,7 @@ function Die({ value, rollKey, x, onClick }: { value: number; rollKey: number; x
 
 /** Place the camera so the whole board fits, whatever the screen's shape. */
 function CameraFit() {
-  const { camera, size } = useThree()
+  const { camera, size, invalidate } = useThree()
   useEffect(() => {
     const cam = camera as THREE.PerspectiveCamera
     const aspect = size.width / size.height
@@ -436,7 +522,8 @@ function CameraFit() {
     cam.position.copy(dir.multiplyScalar(dist))
     cam.lookAt(0, 0, 0.4)
     cam.updateProjectionMatrix()
-  }, [camera, size.width, size.height])
+    invalidate()
+  }, [camera, size.width, size.height, invalidate])
   return null
 }
 
@@ -445,66 +532,86 @@ export default function Scene3D({
   onTile,
   onDiceClick,
   status,
+  saver = false,
+  onFrameRate,
 }: {
   state: GameState
   onTile: (i: number) => void
   onDiceClick?: () => void
   /** Optional line shown over the scene, e.g. whose turn it is. */
   status?: ReactNode
+  /** Battery saver: redraw only on change, lighter rendering. */
+  saver?: boolean
+  /** Called once a second with how many frames were drawn. */
+  onFrameRate?: (perSecond: number) => void
 }) {
   const motion = useAnimatedPositions(state.players)
   const [a, b] = state.lastRoll?.dice ?? [5, 3]
   const key = state.lastRoll?.seq ?? 0
   const highlight = state.auction?.tile ?? state.turn.pendingTile
   const [view, setView] = useState(0)
+  const bursts = useMoneyFx((s) => s.bursts)
   return (
     <div className="relative h-full w-full">
       {/* pan-y keeps vertical swipes scrolling the page; sideways drags spin the board. */}
-      <Canvas shadows camera={{ position: [0, 10.5, 10.5], fov: 38 }} dpr={[1, 2]} style={{ touchAction: 'pan-y' }}>
-        <color attach="background" args={['#1d140d']} />
-        <fog attach="fog" args={['#1d140d', 22, 40]} />
-        <ambientLight intensity={0.3} />
-        <directionalLight
-          position={[5, 13, 6]}
-          intensity={2.2}
-          color="#fff1dc"
-          castShadow
-          shadow-mapSize={[2048, 2048]}
-          shadow-camera-left={-9}
-          shadow-camera-right={9}
-          shadow-camera-top={9}
-          shadow-camera-bottom={-9}
-          shadow-bias={-0.0004}
-          shadow-radius={6}
-        />
-        <pointLight position={[-8, 5, -6]} intensity={30} color="#ffb070" distance={30} />
-        {/* Studio reflections without downloading an HDR file */}
-        <Environment resolution={256}>
-          <Lightformer form="rect" intensity={2} position={[0, 6, 4]} scale={[10, 4, 1]} rotation-x={-Math.PI / 3} />
-          <Lightformer form="rect" intensity={1} color="#ffd9a8" position={[-6, 3, -4]} scale={[6, 3, 1]} rotation-y={Math.PI / 3} />
-          <Lightformer form="circle" intensity={1.5} position={[6, 4, -2]} scale={2} />
-        </Environment>
-        <CameraFit key={`fit-${view}`} />
-        <Table />
-        <BoardMesh state={state} onTile={onTile} />
-        <Highlight tile={highlight} />
-        <Buildings state={state} />
-        <Pawns state={state} motion={motion} />
-        <Die value={a} rollKey={key} x={-0.42} onClick={onDiceClick} />
-        <Die value={b} rollKey={key} x={0.42} onClick={onDiceClick} />
-        <ContactShadows position={[0, 0.014, 0]} opacity={0.35} scale={SIZE} blur={2} far={1.5} resolution={512} />
-        <OrbitControls
-          key={`orbit-${view}`}
-          target={[0, 0, 0.4]}
-          enablePan={false}
-          enableDamping
-          dampingFactor={0.08}
-          minDistance={7}
-          maxDistance={34}
-          minPolarAngle={0.2}
-          maxPolarAngle={Math.PI / 2.35}
-          touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_ROTATE }}
-        />
+      <Canvas
+        shadows
+        frameloop={saver ? 'demand' : 'always'}
+        camera={{ position: [0, 10.5, 10.5], fov: 38 }}
+        dpr={saver ? [1, 1.5] : [1, 2]}
+        style={{ touchAction: 'pan-y' }}
+      >
+        <SaverContext.Provider value={saver}>
+          {onFrameRate && <FrameCounter onRate={onFrameRate} />}
+          <RedrawOn value={state} />
+          <RedrawOn value={motion} />
+          <RedrawOn value={bursts} />
+          <color attach="background" args={['#1d140d']} />
+          <fog attach="fog" args={['#1d140d', 22, 40]} />
+          <ambientLight intensity={0.3} />
+          <directionalLight
+            position={[5, 13, 6]}
+            intensity={2.2}
+            color="#fff1dc"
+            castShadow
+            shadow-mapSize={saver ? [1024, 1024] : [2048, 2048]}
+            shadow-camera-left={-9}
+            shadow-camera-right={9}
+            shadow-camera-top={9}
+            shadow-camera-bottom={-9}
+            shadow-bias={-0.0004}
+            shadow-radius={6}
+          />
+          <pointLight position={[-8, 5, -6]} intensity={30} color="#ffb070" distance={30} />
+          {/* Studio reflections without downloading an HDR file */}
+          <Environment resolution={256}>
+            <Lightformer form="rect" intensity={2} position={[0, 6, 4]} scale={[10, 4, 1]} rotation-x={-Math.PI / 3} />
+            <Lightformer form="rect" intensity={1} color="#ffd9a8" position={[-6, 3, -4]} scale={[6, 3, 1]} rotation-y={Math.PI / 3} />
+            <Lightformer form="circle" intensity={1.5} position={[6, 4, -2]} scale={2} />
+          </Environment>
+          <CameraFit key={`fit-${view}`} />
+          <Table />
+          <BoardMesh state={state} onTile={onTile} />
+          <Highlight tile={highlight} />
+          <Buildings state={state} />
+          <Pawns state={state} motion={motion} />
+          <Die value={a} rollKey={key} x={-0.42} onClick={onDiceClick} />
+          <Die value={b} rollKey={key} x={0.42} onClick={onDiceClick} />
+          {/* Re-renders every frame; the sun's shadows are enough in battery saver. */}
+          {!saver && <ContactShadows position={[0, 0.014, 0]} opacity={0.35} scale={SIZE} blur={2} far={1.5} resolution={512} />}
+          <OrbitControls
+            key={`orbit-${view}`}
+            target={[0, 0, 0.4]}
+            enablePan={false}
+            enableDamping
+            dampingFactor={0.08}
+            minDistance={7}
+            maxDistance={34}
+            minPolarAngle={0.2}
+            maxPolarAngle={Math.PI / 2.35}
+            touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_ROTATE }}
+          />
+        </SaverContext.Provider>
       </Canvas>
       {status && (
         <div className="pointer-events-none absolute inset-x-0 top-2 flex justify-center px-2">
