@@ -545,7 +545,7 @@ export default function Scene3D({
   /** Called once a second with how many frames were drawn. */
   onFrameRate?: (perSecond: number) => void
 }) {
-  const motion = useAnimatedPositions(state.players)
+  const motion = useAnimatedPositions(state)
   const [a, b] = state.lastRoll?.dice ?? [5, 3]
   const key = state.lastRoll?.seq ?? 0
   const highlight = state.auction?.tile ?? state.turn.pendingTile

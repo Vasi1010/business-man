@@ -237,8 +237,13 @@ function passStart(ctx: Ctx, p: Player) {
   log(ctx, `${p.name} passed Start and collected ${m(ctx.s.settings.startSalary)}.`)
 }
 
+function moveEvent(ctx: Ctx, p: Player, to: number, how: 'walk' | 'back' | 'jail') {
+  ctx.events.push({ type: 'move', playerId: p.id, from: p.position, to, how })
+}
+
 function moveForward(ctx: Ctx, p: Player, steps: number, diceTotal: number) {
   const target = p.position + steps
+  moveEvent(ctx, p, target % BOARD_SIZE, 'walk')
   if (target >= BOARD_SIZE) passStart(ctx, p)
   p.position = target % BOARD_SIZE
   landOn(ctx, p, diceTotal, 1)
@@ -246,12 +251,14 @@ function moveForward(ctx: Ctx, p: Player, steps: number, diceTotal: number) {
 
 /** Advance (forward) to a specific tile, collecting salary if Start is passed or landed on. */
 function advanceTo(ctx: Ctx, p: Player, tile: number, diceTotal: number, rentMultiplier = 1) {
+  moveEvent(ctx, p, tile, 'walk')
   if (tile <= p.position) passStart(ctx, p)
   p.position = tile
   landOn(ctx, p, diceTotal, rentMultiplier)
 }
 
 function sendToJail(ctx: Ctx, p: Player) {
+  moveEvent(ctx, p, JAIL_TILE, 'jail')
   p.position = JAIL_TILE
   p.inJail = true
   p.jailAttempts = 0
@@ -372,10 +379,13 @@ function drawCard(ctx: Ctx, p: Player, deck: 'chance' | 'chest', diceTotal: numb
       advanceTo(ctx, p, next, diceTotal, 2)
       return
     }
-    case 'moveBack':
-      p.position = (p.position - e.spaces + BOARD_SIZE) % BOARD_SIZE
+    case 'moveBack': {
+      const to = (p.position - e.spaces + BOARD_SIZE) % BOARD_SIZE
+      moveEvent(ctx, p, to, 'back')
+      p.position = to
       landOn(ctx, p, diceTotal, 1)
       return
+    }
     case 'repairs': {
       const { houses, hotels } = buildingCounts(ctx.s, p.id)
       const total = houses * e.perHouse + hotels * e.perHotel

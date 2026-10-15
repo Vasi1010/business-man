@@ -669,6 +669,16 @@ describe('Chance (decided by dice total, landing on tile 20)', () => {
     expect(cash(s, 'a')).toBe(START_CASH)
   })
   it('6: pay 1,000', () => expect(cash(at(6), 'a')).toBe(START_CASH - 1000))
+  it("records each move in order: walk to the card, then the card's move", () => {
+    const s = at(5)
+    const moves = s.lastEvents.filter((e) => e.type === 'move' || e.type === 'card').map((e) => (e.type === 'move' ? `${e.how} ${e.from}->${e.to}` : 'card'))
+    expect(moves).toEqual([`walk ${CHANCE - 5}->${CHANCE}`, 'card', `walk ${CHANCE}->${AIR}`])
+  })
+  it('records a trip to Jail as its own move', () => {
+    const s = at(3)
+    const moves = s.lastEvents.filter((e) => e.type === 'move').map((e) => (e.type === 'move' ? e.how : ''))
+    expect(moves).toEqual(['walk', 'jail'])
+  })
   it('7: go back 3 spaces', () => {
     const s = at(7)
     expect(player(s, 'a').position).toBe(CHANCE - 3)

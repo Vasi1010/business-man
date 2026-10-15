@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BOARD, applyAction, initialState, type Action, type GameState } from '../../engine'
 import type { GameController } from '../controller'
-import { arrivalDelay } from '../hooks/useAnimatedPositions'
+import { buildPlayback } from '../playback'
 import { PLAYER_COLORS } from '../tokens'
 
 /** A furnished demo game: four players, some cities owned and built on. */
@@ -62,6 +62,7 @@ export function useDemoGame(): { controller: GameController; roll: () => void; b
     const dice: [number, number] = [randomDie(), randomDie()]
     if (s.players.find((p) => p.id === actor)?.inJail) apply({ type: 'payJailFine' }, actor)
     apply({ type: 'roll', dice }, actor)
+    // Decide once the whole move has played out on screen.
     setTimeout(() => {
       const after = stateRef.current
       if (after.debts.length) apply({ type: 'payDebt' }, after.debts[0].debtorId)
@@ -70,7 +71,7 @@ export function useDemoGame(): { controller: GameController; roll: () => void; b
       }
       if (stateRef.current.turn.phase === 'end') apply({ type: 'endTurn' }, actor)
       setBusy(false)
-    }, arrivalDelay(dice[0] + dice[1]) + 300)
+    }, buildPlayback(stateRef.current.lastEvents).settledAt + 300)
   }, [apply, busy])
 
   const controller = useMemo<GameController>(

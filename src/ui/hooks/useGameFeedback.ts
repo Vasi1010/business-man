@@ -3,7 +3,7 @@ import { type GameState, type PlayerId } from '../../engine'
 import { moneyBurst } from '../../store/moneyFx'
 import { toast } from '../../store/toasts'
 import { sfx } from '../sound'
-import { arrivalDelay } from './useAnimatedPositions'
+import { buildPlayback } from '../playback'
 
 /** Sounds, toasts and money animations for whatever the latest action did (works for remote updates too). */
 export function useGameFeedback(state: GameState, meId: PlayerId | null) {
@@ -17,38 +17,36 @@ export function useGameFeedback(state: GameState, meId: PlayerId | null) {
     }
     lastSeq.current = state.seq
     const name = (id: PlayerId) => state.players.find((p) => p.id === id)?.name ?? '?'
-    const roll = state.lastRoll
-    const delay = roll && roll.seq === state.seq ? arrivalDelay(roll.dice[0] + roll.dice[1]) : 0
-    const later = (fn: () => void) => (delay ? setTimeout(fn, delay) : fn())
+    // Each event plays when the shared timeline reaches it: rent once the pawn lands,
+    // a card's money after the card, and so on.
+    const plan = buildPlayback(state.lastEvents)
+    const later = (ms: number, fn: () => void) => (ms ? setTimeout(fn, ms) : fn())
     let moneyToasts = 0
-    let gained = false
-    let lost = false
-    for (const e of state.lastEvents) {
+    let soundAt: { at: number; gain: boolean } | null = null
+    state.lastEvents.forEach((e, i) => {
+      const at = plan.at[i] ?? 0
       switch (e.type) {
         case 'dice':
           sfx.dice()
           break
         case 'card':
-          setTimeout(() => sfx.card(), delay || 250)
+          later(at, () => sfx.card())
           break
         case 'jail':
-          later(() => sfx.bad())
+          later(at, () => sfx.bad())
           break
         case 'bankrupt':
           toast(`${name(e.playerId)} is bankrupt!`, 'loss')
           break
         case 'money': {
           const mine = meId === null || e.playerId === meId
-          if (mine) {
-            if (e.amount > 0) gained = true
-            else lost = true
-          }
+          if (mine && !soundAt) soundAt = { at, gain: e.amount > 0 }
           if (moneyToasts < 4) {
             moneyToasts++
             const player = state.players.find((p) => p.id === e.playerId)
             const who = meId !== null && e.playerId === meId ? 'You' : (player?.name ?? '?')
             const burst = { playerId: e.playerId, amount: e.amount, who, reason: e.reason, color: player?.color ?? '#888888' }
-            later(() => moneyBurst(burst))
+            later(at, () => moneyBurst(burst))
           }
           break
         }
@@ -56,9 +54,11 @@ export function useGameFeedback(state: GameState, meId: PlayerId | null) {
           sfx.card()
           break
       }
+    })
+    if (soundAt) {
+      const { at, gain } = soundAt
+      setTimeout(() => (gain ? sfx.coin() : sfx.pay()), at + 120)
     }
-    if (gained) setTimeout(() => sfx.coin(), delay + 120)
-    else if (lost) setTimeout(() => sfx.pay(), delay + 120)
 
     if (state.turn.playerId !== lastTurn.current) {
       lastTurn.current = state.turn.playerId

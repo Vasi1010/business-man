@@ -121,6 +121,8 @@ export interface CardReveal {
 export type GameEvent =
   | { type: 'money'; playerId: PlayerId; amount: number; reason: string }
   | { type: 'dice'; playerId: PlayerId; dice: [number, number] }
+  /** A pawn moving, in the order it happened: walking forward, stepping back, or sent to Jail. */
+  | { type: 'move'; playerId: PlayerId; from: number; to: number; how: 'walk' | 'back' | 'jail' }
   | { type: 'card'; reveal: CardReveal }
   | { type: 'jail'; playerId: PlayerId }
   | { type: 'bankrupt'; playerId: PlayerId }

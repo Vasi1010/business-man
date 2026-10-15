@@ -18,6 +18,7 @@ import {
 import { canAct, useController, type GameController } from '../controller'
 import { rollDice } from '../dice'
 import { useNow } from '../hooks/useNow'
+import { useSettled } from '../hooks/useSettled'
 import { TokenBadge } from './Art'
 import { Button, Panel } from './ui'
 
@@ -313,10 +314,24 @@ function TurnPanel({ c }: { c: GameController }) {
 export function ActionPanel() {
   const c = useController()
   const s = c.state
+  // Hold decisions until the move has played out, so you see where you landed first.
+  const settled = useSettled(s)
   if (s.status !== 'playing') return null
+  const mover = s.players.find((p) => p.id === s.turn.playerId)
   return (
     <Panel className="min-h-[7.5rem]">
-      {s.debts.length > 0 ? <DebtPanel c={c} /> : s.auction ? <AuctionPanel c={c} /> : <TurnPanel c={c} />}
+      {!settled ? (
+        <p className="flex h-full items-center gap-2 py-6 text-muted" role="status">
+          {mover && <TokenBadge token={mover.token} color={mover.color} size={24} />}
+          {mover?.name ?? 'Someone'} is moving…
+        </p>
+      ) : s.debts.length > 0 ? (
+        <DebtPanel c={c} />
+      ) : s.auction ? (
+        <AuctionPanel c={c} />
+      ) : (
+        <TurnPanel c={c} />
+      )}
     </Panel>
   )
 }

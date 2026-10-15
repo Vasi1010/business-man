@@ -359,7 +359,7 @@ export function Board({
   onDiceClick?: () => void
 }) {
   const { state } = useController()
-  const motion = useAnimatedPositions(state.players)
+  const motion = useAnimatedPositions(state)
   const highlightTile = state.auction?.tile ?? state.turn.pendingTile
   const tilt = variant === 'tilt'
 

@@ -7,6 +7,7 @@ import { rollDice } from '../dice'
 import { useAutoActions } from '../hooks/useAutoActions'
 import { useGameFeedback } from '../hooks/useGameFeedback'
 import { useNow } from '../hooks/useNow'
+import { useSettled } from '../hooks/useSettled'
 import { ActionPanel } from '../components/ActionPanel'
 import { Logo } from '../components/Art'
 import { BoardViewToggle, GameBoard } from '../components/GameBoard'
@@ -120,7 +121,8 @@ export function GameScreen({ controller: c }: { controller: GameController }) {
   // Tapping the dice rolls them when it's your turn to roll.
   const roller = s.turn.playerId
   const [rolling, setRolling] = useState(false)
-  const canRoll = !rolling && canAct(c, roller) && isLegal(s, { type: 'roll', dice: [1, 2] }, roller)
+  const settled = useSettled(s)
+  const canRoll = !rolling && settled && canAct(c, roller) && isLegal(s, { type: 'roll', dice: [1, 2] }, roller)
   const onDiceClick = canRoll
     ? () => {
         setRolling(true)

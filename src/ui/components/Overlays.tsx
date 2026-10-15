@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { formatMoney, ranking, type CardReveal as Reveal } from '../../engine'
 import { useToasts } from '../../store/toasts'
 import { useController } from '../controller'
-import { arrivalDelay } from '../hooks/useAnimatedPositions'
+import { CARD_MS, buildPlayback } from '../playback'
 import { TileIcon, TokenBadge } from './Art'
 import { Button } from './ui'
 
@@ -44,27 +44,29 @@ export function CardReveal() {
     if (card.seq > initialSeq) setShown(card)
   }
 
-  // Reveal once the token has finished walking to the card tile.
+  // Reveal once the pawn has walked onto the card square, and put it away before the pawn
+  // moves on (to a railway, back 3 spaces, to Jail...), following the shared timeline.
   const [visibleSeq, setVisibleSeq] = useState<number | null>(null)
   const visible = !!shown && visibleSeq === shown.seq
-  const roll = state.lastRoll
-  const walkMs = shown && roll && roll.seq === shown.seq ? arrivalDelay(roll.dice[0] + roll.dice[1]) : 0
+  const timing = shown && shown.seq === state.seq ? buildPlayback(state.lastEvents).card : null
+  const showAt = timing?.show ?? 0
+  const hideAt = timing?.hide ?? CARD_MS
   useEffect(() => {
     if (!shown) return
-    const t = setTimeout(() => setVisibleSeq(shown.seq), walkMs)
+    const t = setTimeout(() => setVisibleSeq(shown.seq), showAt)
     return () => clearTimeout(t)
-  }, [shown, walkMs])
+  }, [shown, showAt])
 
   useEffect(() => {
     if (!shown || !visible) return
-    const t = setTimeout(() => setShown(null), 4200)
+    const t = setTimeout(() => setShown(null), hideAt - showAt)
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setShown(null)
     document.addEventListener('keydown', onKey)
     return () => {
       clearTimeout(t)
       document.removeEventListener('keydown', onKey)
     }
-  }, [shown, visible])
+  }, [shown, visible, hideAt, showAt])
 
   if (!shown || !visible) return null
   const who = state.players.find((p) => p.id === shown.playerId)

@@ -1,12 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { BOARD_SIZE, JAIL_TILE, type Player } from '../../engine'
+import type { GameState } from '../../engine'
+import { buildPlayback, type Playback } from '../playback'
 import { sfx } from '../sound'
-
-/** Wait for the dice tumble to finish before the token sets off. */
-export const START_DELAY_MS = 650
-const MIN_WALK_MS = 1000
-const MAX_WALK_MS = 3000
-const PER_STEP_MS = 230
 
 export interface TokenMotion {
   /** Tile each token is currently drawn on. */
@@ -17,77 +12,71 @@ export interface TokenMotion {
   stepMs: Record<string, number>
 }
 
-/** How long after a roll the token arrives on its tile. */
-export function arrivalDelay(steps: number): number {
-  return START_DELAY_MS + walkDuration(steps) + 100
-}
-
-/** Total walk time: 1–3 seconds depending on distance. */
-export function walkDuration(steps: number): number {
-  return Math.min(MAX_WALK_MS, Math.max(MIN_WALK_MS, steps * PER_STEP_MS))
-}
+const settledPositions = (s: GameState) => Object.fromEntries(s.players.map((p) => [p.id, p.position]))
 
 /**
- * Board positions for drawing tokens. Tokens hop tile by tile towards each
- * player's real position; going to Jail jumps straight there.
+ * Board positions for drawing tokens. Each move from the latest action is replayed
+ * in order (dice walk, then any card move or trip to Jail), tile by tile.
  */
-export function useAnimatedPositions(players: Player[]): TokenMotion {
-  const [motion, setMotion] = useState<TokenMotion>(() => ({
-    positions: Object.fromEntries(players.map((p) => [p.id, p.position])),
-    hops: {},
-    stepMs: {},
-  }))
+export function useAnimatedPositions(state: GameState): TokenMotion {
+  const [motion, setMotion] = useState<TokenMotion>(() => ({ positions: settledPositions(state), hops: {}, stepMs: {} }))
   const motionRef = useRef(motion)
-  const playersRef = useRef(players)
+  const stateRef = useRef(state)
+  // Don't replay whatever happened before this screen opened.
+  const seenSeq = useRef(state.seq)
   useEffect(() => {
-    playersRef.current = players
+    stateRef.current = state
   })
 
-  const key = players.map((p) => `${p.id}:${p.position}:${p.inJail ? 1 : 0}:${p.bankrupt ? 1 : 0}`).join('|')
+  const commit = (next: TokenMotion) => {
+    motionRef.current = next
+    setMotion(next)
+  }
+
+  // Only actions that move a pawn restart the animation; positions catch anything else
+  // (e.g. a new game). Unrelated updates like a trade offer don't disturb a walk in progress.
+  const moveSeq = state.lastEvents.some((e) => e.type === 'move') ? state.seq : -1
+  const key = state.players.map((p) => `${p.id}:${p.position}:${p.bankrupt ? 1 : 0}`).join('|')
 
   useEffect(() => {
+    const s = stateRef.current
+    const fresh = moveSeq > seenSeq.current
+    seenSeq.current = Math.max(seenSeq.current, moveSeq)
+    const plan: Playback = fresh ? buildPlayback(s.lastEvents) : { moves: [], at: [], card: null, settledAt: 0 }
     const timers: ReturnType<typeof setTimeout>[] = []
-    const commit = (next: TokenMotion) => {
-      motionRef.current = next
-      setMotion(next)
-    }
 
-    for (const p of playersRef.current) {
-      const from = motionRef.current.positions[p.id]
-      if (from === undefined || p.bankrupt || from === p.position) {
-        if (from !== p.position) commit({ ...motionRef.current, positions: { ...motionRef.current.positions, [p.id]: p.position } })
-        continue
-      }
-      // Sent to Jail: no walk.
-      if (p.inJail && p.position === JAIL_TILE) {
-        commit({ ...motionRef.current, positions: { ...motionRef.current.positions, [p.id]: JAIL_TILE } })
-        continue
-      }
-      const forward = (p.position - from + BOARD_SIZE) % BOARD_SIZE
-      const backwards = forward > BOARD_SIZE - 4 // "Go back 3 spaces"
-      const steps = backwards ? BOARD_SIZE - forward : forward
-      const stepMs = walkDuration(steps) / steps
-      for (let i = 1; i <= steps; i++) {
+    // Pawns that move start from where this action began; everyone else sits where they are.
+    const start: Record<string, number> = {}
+    for (const p of s.players) {
+      const first = s.lastEvents.find((e) => e.type === 'move' && e.playerId === p.id)
+      start[p.id] = fresh && first?.type === 'move' ? first.from : p.position
+    }
+    commit({ ...motionRef.current, positions: start })
+
+    for (const m of plan.moves) {
+      m.path.forEach((tile, i) => {
         timers.push(
           setTimeout(
             () => {
               const cur = motionRef.current
-              const tile = (from + (backwards ? -i : i) + BOARD_SIZE) % BOARD_SIZE
               commit({
-                positions: { ...cur.positions, [p.id]: tile },
-                hops: { ...cur.hops, [p.id]: (cur.hops[p.id] ?? 0) + 1 },
-                stepMs: { ...cur.stepMs, [p.id]: stepMs },
+                positions: { ...cur.positions, [m.playerId]: tile },
+                hops: { ...cur.hops, [m.playerId]: (cur.hops[m.playerId] ?? 0) + 1 },
+                stepMs: { ...cur.stepMs, [m.playerId]: m.stepMs },
               })
-              sfx.step()
+              if (m.how !== 'jail') sfx.step()
             },
-            START_DELAY_MS + (i - 1) * stepMs,
+            m.start + i * m.stepMs,
           ),
         )
-      }
+      })
     }
-    // If the state changes mid-walk, the next run continues from wherever the token is drawn.
+    // Whatever happens, end up exactly where the game says.
+    timers.push(
+      setTimeout(() => commit({ ...motionRef.current, positions: settledPositions(stateRef.current) }), plan.settledAt),
+    )
     return () => timers.forEach(clearTimeout)
-  }, [key])
+  }, [moveSeq, key])
 
   return motion
 }
