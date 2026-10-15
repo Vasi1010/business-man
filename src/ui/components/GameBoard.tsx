@@ -27,7 +27,7 @@ export function GameBoard({ onTileClick, onDiceClick }: { onTileClick: (i: numbe
     <SceneBoundary fallback={flat}>
       <div className="aspect-square w-full overflow-hidden rounded-2xl bg-[#1d140d] shadow-xl">
         <Suspense fallback={<p className="grid h-full place-items-center text-sm text-white/70">Setting up the table…</p>}>
-          <Scene3D state={state} onTile={onTileClick} onDiceClick={onDiceClick} status={boardStatus(state)} />
+          <Scene3D state={state} onTile={onTileClick} onDiceClick={onDiceClick} status={boardStatus(state)} saver />
         </Suspense>
       </div>
     </SceneBoundary>
